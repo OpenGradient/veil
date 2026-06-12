@@ -1,4 +1,4 @@
-"""OpenGradient Local — self-verifying private-inference proxy for AI agents.
+"""OpenGradient Veil — self-verifying private-inference proxy for AI agents.
 
 Point any OpenAI-compatible SDK at this process (one env var) and prompts are
 routed through OpenGradient's decentralized network of attestable AWS Nitro TEE

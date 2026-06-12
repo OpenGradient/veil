@@ -1,4 +1,4 @@
-"""CLI wiring: first-run login, session reuse, background-by-default, endpoint, update."""
+"""CLI wiring: first-run login, session reuse, background-by-default, env, models, update."""
 
 from __future__ import annotations
 
@@ -58,11 +58,21 @@ def test_setup_with_yes_starts_background():
     assert result.exit_code == 0
 
 
-def test_endpoint_prints_env_vars():
+def test_env_prints_env_vars():
     with mock.patch("veil.daemon.running_pid", return_value=4321):
-        result = CliRunner().invoke(cli.main, ["endpoint"])
+        result = CliRunner().invoke(cli.main, ["env"])
     assert "OPENAI_BASE_URL=http://127.0.0.1:11434/v1" in result.output
     assert result.exit_code == 0
+
+
+def test_models_lists_known_models():
+    result = CliRunner().invoke(cli.main, ["models"])
+    assert result.exit_code == 0
+    # Should print at least one model name derived from the SDK's TEE_LLM enum.
+    from opengradient import TEE_LLM
+
+    sample = next(iter(TEE_LLM)).value.split("/", 1)[1]
+    assert sample in result.output
 
 
 def test_test_command_posts_prompt_to_localhost_and_prints_reply():

@@ -61,8 +61,8 @@ That's it. Every response is verified before you see it — check the
 on the body). Streaming works too; it's verified before the first token replays.
 
 Useful commands: `og-veil test` (send a one-off prompt to check the path),
-`og-veil stop`, `og-veil status`, `og-veil endpoint` (re-prints the env vars),
-`og-veil update`, `og-veil logout`.
+`og-veil stop`, `og-veil status`, `og-veil env` (re-prints the env vars),
+`og-veil models` (list available models), `og-veil update`, `og-veil logout`.
 
 ### Use it with Hermes Agent
 

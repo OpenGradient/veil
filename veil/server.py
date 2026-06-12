@@ -150,7 +150,7 @@ def serve(config: ServerConfig) -> None:
     app = create_app(gateway)
     tee = gateway.active_tee
     print(
-        f"OpenGradient Local listening on http://{config.host}:{config.port}\n"
+        f"OpenGradient Veil listening on http://{config.host}:{config.port}\n"
         f"  Verified TEE: {tee.tee_id if tee else '?'} ({tee.endpoint if tee else '?'})\n"
         f"  Signed in as: {session.user_email or 'unknown'}\n\n"
         f"Point your agent at it (OpenAI SDK):\n"
