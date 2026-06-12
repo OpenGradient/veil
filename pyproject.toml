@@ -41,7 +41,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://opengradient.ai"
-Repository = "https://github.com/OpenGradient/local"
+Repository = "https://github.com/OpenGradient/veil"
 
 [project.scripts]
 og-veil = "veil.cli:main"
