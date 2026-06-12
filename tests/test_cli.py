@@ -67,6 +67,32 @@ def test_setup_wizard_maps_host_with_yes_then_starts_background():
     assert result.exit_code == 0
 
 
+def test_endpoint_maps_host_and_prints_env():
+    with (
+        mock.patch("og_local.hosts.entry_present", side_effect=[False, True]),
+        mock.patch(
+            "og_local.hosts.add_entry", return_value=(True, "mapped opengradient.inference")
+        ) as add_entry,
+        mock.patch("og_local.daemon.running_pid", return_value=4321),
+    ):
+        result = CliRunner().invoke(cli.main, ["endpoint"])
+    assert add_entry.called
+    assert "OPENAI_BASE_URL" in result.output
+    assert result.exit_code == 0
+
+
+def test_endpoint_guides_to_sudo_when_no_permission():
+    with (
+        mock.patch("og_local.hosts.entry_present", return_value=False),
+        mock.patch("og_local.hosts.add_entry", return_value=(False, "can't write /etc/hosts")),
+        mock.patch("og_local.daemon.running_pid", return_value=None),
+    ):
+        result = CliRunner().invoke(cli.main, ["endpoint"])
+    assert "sudo og-local endpoint" in result.output
+    assert "OPENAI_BASE_URL" in result.output
+    assert result.exit_code == 0
+
+
 def test_serve_non_interactive_does_not_prompt_or_map():
     """In a non-tty (no --yes, no saved pref), the host step is skipped, not blocking."""
     with (

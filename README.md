@@ -86,9 +86,10 @@ export OPENAI_BASE_URL=http://opengradient.inference:11434/v1   # or http://127.
 export OPENAI_API_KEY=og-local   # ignored; your Chat session authenticates
 ```
 
-> Re-run the wizard anytime with `og-local setup`. For the clean
-> `http://opengradient.inference/v1` (no port), serve on port 80:
-> `og-local serve --port 80` (needs elevated privileges).
+> Forgot your endpoint, or want the friendly `opengradient.inference` URL set up?
+> Run **`og-local endpoint`** (it prints the env vars), or **`sudo og-local
+> endpoint`** to also write the hosts-file mapping. Re-run the full wizard with
+> `og-local setup`.
 
 ```python
 from openai import OpenAI
@@ -117,6 +118,7 @@ machine.
 | `og-local setup [-y]` | Re-run the setup wizard (login + friendly-URL choice). |
 | `og-local serve [--port] [--tee-id] [--expected-pcr] [-f/--foreground] ...` | Serve (runs setup on first use). Detaches by default; `-f` blocks. |
 | `og-local stop` | Stop the background server. |
+| `og-local endpoint` | Print the agent env vars; run `sudo og-local endpoint` to map `opengradient.inference`. |
 | `og-local login [--app-url URL] [--manual]` | Authorize / re-authorize this device (default `https://chat.opengradient.ai`). |
 | `og-local status` | Show login, network config, and whether a background server is running. |
 | `og-local logout` | Remove the saved session. |

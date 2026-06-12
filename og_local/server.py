@@ -156,7 +156,7 @@ def serve(config: ServerConfig) -> None:
     base_url = config.advertised_base_url()
     hint = ""
     if "opengradient.inference" not in base_url:
-        hint = "  (tip: run `og-local setup` for a http://opengradient.inference URL)\n"
+        hint = "  (tip: run `sudo og-local endpoint` for a http://opengradient.inference URL)\n"
     print(
         f"OpenGradient Local listening on http://{config.host}:{config.port}\n"
         f"  Verified TEE: {tee.tee_id if tee else '?'} ({tee.endpoint if tee else '?'})\n"

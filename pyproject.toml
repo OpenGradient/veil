@@ -1,6 +1,6 @@
 [project]
 name = "opengradient-local"
-version = "0.1.3"
+version = "0.1.4"
 description = "OpenGradient Local — a drop-in, self-verifying private-inference proxy for AI agents. Point your OpenAI SDK at it; it routes prompts through OpenGradient's decentralized network of attestable Nitro TEE gateways and cryptographically verifies every response before a single token reaches your code."
 readme = "README.md"
 requires-python = ">=3.11"

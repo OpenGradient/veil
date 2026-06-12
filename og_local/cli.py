@@ -89,6 +89,9 @@ def _maybe_setup_friendly_host(*, interactive: bool, assume_yes: bool, force: bo
     if want:
         added, message = add_entry(FRIENDLY_HOST)
         click.secho(("✓ " if added else "") + message, fg="green" if added else "yellow")
+        if not added:
+            click.echo("  Or apply it later with:  ", nl=False)
+            click.secho("sudo og-local endpoint", fg="cyan")
 
 
 def _run_setup(
@@ -241,6 +244,36 @@ def stop() -> None:
         click.echo("No background server is running.")
     else:
         click.secho(f"✓ Stopped background server (pid {pid}).", fg="green")
+
+
+@main.command()
+def endpoint() -> None:
+    """Print the agent endpoint, and map opengradient.inference (run with sudo to apply)."""
+    from og_local.daemon import running_pid
+    from og_local.hosts import add_entry, entry_present
+
+    config = ServerConfig.from_env()
+
+    # Friendly hostname: set it up if we can (e.g. invoked via `sudo`), else guide.
+    if entry_present(FRIENDLY_HOST):
+        click.secho(f"✓ {FRIENDLY_HOST} is mapped to your local server.", fg="green")
+    else:
+        added, message = add_entry(FRIENDLY_HOST)
+        if added:
+            click.secho(f"✓ {message}", fg="green")
+        else:
+            click.secho(message, fg="yellow")
+            click.echo("  Tip: re-run with elevated privileges to apply it automatically:")
+            click.secho("       sudo og-local endpoint", fg="cyan")
+
+    click.echo("\nPoint your agent at OpenGradient Local (one env var change):")
+    click.secho(f"  export OPENAI_BASE_URL={config.advertised_base_url()}", bold=True)
+    click.echo("  export OPENAI_API_KEY=og-local   # ignored; your Chat session authenticates")
+    if not entry_present(FRIENDLY_HOST):
+        click.echo(f"  # (or http://127.0.0.1:{config.port}/v1)")
+
+    if running_pid() is None:
+        click.echo("\nThe server isn't running yet — start it with `og-local`.")
 
 
 @main.command(name="login")
