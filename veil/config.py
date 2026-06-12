@@ -25,11 +25,11 @@ DEFAULT_APP_URL = os.getenv("OG_VEIL_APP_URL", "https://chat.opengradient.ai")
 def config_home() -> Path:
     """Directory holding the saved login session.
 
-    Defaults to ``~/.opengradient/local`` and is overridable with
+    Defaults to ``~/.opengradient/veil`` and is overridable with
     ``OG_VEIL_HOME`` (handy for tests and for running several identities).
     """
     override = os.getenv("OG_VEIL_HOME")
-    base = Path(override) if override else Path.home() / ".opengradient" / "local"
+    base = Path(override) if override else Path.home() / ".opengradient" / "veil"
     base.mkdir(parents=True, exist_ok=True)
     return base
 

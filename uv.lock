@@ -2110,8 +2110,8 @@ wheels = [
 ]
 
 [[package]]
-name = "opengradient-local"
-version = "0.1.6"
+name = "opengradient-veil"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

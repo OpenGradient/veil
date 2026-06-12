@@ -237,7 +237,7 @@ def _update_command() -> list[str]:
     """Pick the right upgrade command based on how this CLI was installed."""
     import shutil
 
-    pkg = "opengradient-local"
+    pkg = "opengradient-veil"
     location = (__file__ or "").replace("\\", "/")
     if "/uv/tools/" in location and shutil.which("uv"):
         return ["uv", "tool", "upgrade", pkg]
@@ -257,7 +257,7 @@ def update() -> None:
         subprocess.run(cmd, check=True)
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         raise click.ClickException(
-            f"update failed: {exc}\nTry manually, e.g.:  uv tool upgrade opengradient-local"
+            f"update failed: {exc}\nTry manually, e.g.:  uv tool upgrade opengradient-veil"
         )
     click.secho("✓ Updated. Restart the server to pick it up:  og-veil stop && og-veil", fg="green")
 
