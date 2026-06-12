@@ -82,8 +82,8 @@ def _build_engine():  # noqa: ANN202 — Presidio types are untyped
     except ImportError as exc:
         raise PiiSetupError(
             "PII scrubbing needs the optional extra. Install it with: "
-            "pip install 'opengradient-veil[pii]' && python -m spacy download "
-            f"{_SPACY_MODEL}"
+            "pip install 'opengradient-veil[pii]' and install the spaCy model "
+            f"'{_SPACY_MODEL}' (e.g. `python -m spacy download {_SPACY_MODEL}` or the model wheel)."
         ) from exc
 
     provider = NlpEngineProvider(
