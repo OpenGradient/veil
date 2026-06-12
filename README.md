@@ -50,6 +50,32 @@ on the body). Streaming works too; it's verified before the first token replays.
 Useful commands: `og-veil stop`, `og-veil status`, `og-veil endpoint` (re-prints
 the env vars), `og-veil update`, `og-veil logout`.
 
+### Use it with Hermes Agent
+
+[Hermes Agent](https://hermes-agent.nousresearch.com) speaks OpenAI out of the
+box, so pointing it at `og-veil` routes every call through the verified TEE path.
+With `og-veil` running, set a custom endpoint — either via the CLI:
+
+```sh
+hermes config set model.provider custom
+hermes config set model.base_url http://127.0.0.1:11434/v1
+hermes config set OPENAI_API_KEY og-veil      # ignored; your Chat login authenticates
+hermes config set model.default claude-sonnet-4-6
+```
+
+…or by editing `~/.hermes/config.yaml` directly:
+
+```yaml
+model:
+  default: claude-sonnet-4-6
+  provider: custom
+  base_url: http://127.0.0.1:11434/v1
+  api_key: ${OPENAI_API_KEY}     # set OPENAI_API_KEY=og-veil in ~/.hermes/.env
+```
+
+Now `hermes` runs against attested, end-to-end-encrypted inference with no other
+changes. Confirm it's flowing through the enclave with `og-veil status`.
+
 ---
 
 ## How it works
