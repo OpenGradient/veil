@@ -173,6 +173,42 @@ Session + prefs live in `~/.opengradient/local/` (override with `OG_VEIL_HOME`).
 | `OG_VEIL_TEE_ID` | `--tee-id` | — | Pin a specific registry TEE. |
 | `OG_VEIL_EXPECTED_PCR_HASH` | `--expected-pcr` | — | Refuse any TEE whose `pcrHash` differs. |
 | `OG_VEIL_APP_URL` | `--app-url` | `https://chat.opengradient.ai` | Chat app origin for login. |
+| `OG_VEIL_PII_SCRUB` | `--pii-scrub` | off | Redact high-impact PII from prompts locally before they leave the machine. |
+| `OG_VEIL_PII_REDACT_ALL_DATES` | `--pii-all-dates` | off | With scrubbing on, redact *every* date as a DOB (aggressive) instead of only birth-date-cued ones. |
+
+### Local PII redaction (opt-in)
+
+Veil already keeps prompts private end-to-end — OHTTP splits *who you are* from
+*what you ask*, and the enclave is attested and reproducible. Local PII scrubbing
+is **defense-in-depth** on top of that: when enabled, high-impact PII is
+irreversibly replaced with `[REDACTED_*]` tags *before* the prompt is encrypted to
+the TEE, so the raw values never leave your machine. Handy for compliance,
+data-residency, and keeping PII out of any model-side logging.
+
+```sh
+og-veil --pii-scrub        # or: export OG_VEIL_PII_SCRUB=1
+```
+
+Two layered tiers:
+
+- **Regex (always on when enabled, zero extra deps)** — email, US SSN, and bank
+  numbers (credit cards Luhn-checked, IBANs mod-97-checked, plus routing/account
+  numbers when labelled). Dates of birth are caught by context (`DOB:`, `born on …`).
+- **Addresses (optional)** — free-form street addresses are prose that regex can't
+  see, so they need a lightweight local NER model. Install the extra once:
+
+  ```sh
+  pip install 'opengradient-veil[pii]'
+  python -m spacy download en_core_web_sm
+  ```
+
+  With the extra present, `--pii-scrub` also redacts addresses/locations. Without
+  it, scrubbing still runs (regex tier) and logs that address coverage is off.
+
+Redaction is **irreversible** — there's no de-anonymization step, so the TEE's
+signed `output_hash` covers exactly what it ran. This is risk-reduction, not a
+guarantee: NER misses a fraction of addresses each run, and bare (unlabelled)
+account numbers can slip through.
 
 ## Notes & limitations
 
