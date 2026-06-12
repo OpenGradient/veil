@@ -1,34 +1,37 @@
 """Local, opt-in PII redaction applied *before* a prompt leaves this process.
 
-Veil already keeps prompts private end-to-end (Oblivious HTTP splits identity
-from content; the enclave is attested and reproducible). This module is
-*defense-in-depth* on top of that: when enabled, high-impact PII is irreversibly
-replaced with ``[REDACTED_*]`` tags on the agent's request before it is HPKE-
-sealed to the TEE, so the raw values never leave the machine at all — useful for
-compliance, data-residency, and keeping PII out of any model-side logging.
+Veil's privacy guarantee is *unlinkability*: Oblivious HTTP splits who-you-are
+from what-you-ask, so the relay sees your identity but only ciphertext, and the
+model provider sees the prompt but believes it came from the enclave — not you.
+That holds **only if the prompt content doesn't re-identify you**. A request that
+says "I'm Adam Balogh, adam@example.com, 25 Park Lane" hands your identity to the
+provider through the content and undoes the cryptographic split. So this module's
+job is to de-identify the *requester*: strip the things that point back to a
+specific person before the prompt is HPKE-sealed to the TEE.
 
-Detection is delegated to **Microsoft Presidio** rather than handrolled patterns,
-so the recognizers are community-maintained, versioned, and carry confidence
-scores + context-word boosting. Note that Presidio detects the *structured*
-types (email, SSN, cards, IBANs, bank numbers) with its own regex/checksum
-recognizers — spaCy's statistical model is only used for free-form
-*addresses/locations*. Because of that, this feature requires the optional extra:
+Detection is delegated to **Microsoft Presidio** so the recognizers are
+community-maintained rather than handrolled. Presidio detects structured values
+(email, phone, SSN, cards, IBANs, bank numbers) with its own regex/checksum
+recognizers, and uses a spaCy NER model for the free-form identity linkers
+(names, locations). This requires the optional extra plus a spaCy model:
 
     pip install 'opengradient-veil[pii]'
-    python -m spacy download en_core_web_sm
+    python -m spacy download en_core_web_lg
 
 What gets redacted (mapped to the tags below):
 
-* email, US SSN, credit cards (Luhn), IBANs (mod-97), US bank/routing numbers
-* addresses / locations (spaCy NER)
+* names of people, and addresses / locations (spaCy NER + a street-line recognizer)
+* email and phone numbers
+* US SSN, credit cards (Luhn), IBANs (mod-97), US bank/routing numbers
 
 Dates are deliberately *not* redacted — they're too entangled with legitimate
 prompt content to scrub without mangling it.
 
-This is risk-reduction, not a guarantee: NER misses a fraction of addresses every
-run, and bare (unlabelled) account numbers can slip through. Redaction is
-irreversible — there is deliberately no de-anonymization step, so the TEE's signed
-``output_hash`` covers exactly what it ran and nothing is restored locally.
+This is risk-reduction, not a guarantee. It's also *blunt*: it can't tell your
+own name from a name you're asking about, so it over-redacts; and even perfect
+PII removal leaves residual re-identification (writing style, niche topics).
+Redaction is irreversible — there is deliberately no de-anonymization step, so
+the TEE's signed ``output_hash`` covers exactly what it ran.
 """
 
 from __future__ import annotations
@@ -39,25 +42,47 @@ logger = logging.getLogger(__name__)
 
 # Redaction tags. Kept human-readable so a redacted prompt still reads sensibly to
 # the model (e.g. "wire it to [REDACTED_BANK_NUMBER]").
+NAME_TAG = "[REDACTED_NAME]"
 EMAIL_TAG = "[REDACTED_EMAIL]"
+PHONE_TAG = "[REDACTED_PHONE]"
 SSN_TAG = "[REDACTED_SSN]"
 BANK_TAG = "[REDACTED_BANK_NUMBER]"
 ADDRESS_TAG = "[REDACTED_ADDRESS]"
 
-# spaCy model backing the NER (address) detection. The small English model is the
-# lightweight choice; recall climbs with the medium/large models at a large size
-# cost. Override is intentionally not exposed — keep the install predictable.
-_SPACY_MODEL = "en_core_web_sm"
+# spaCy model backing the NER (name/location) detection. The large English model
+# is used rather than the small one: names are the core identity linker here, and
+# large meaningfully improves PERSON recall across diverse names. It's a ~560 MB
+# CNN model (not a transformer) and runs on CPU. Override is intentionally not
+# exposed — keep the install predictable.
+_SPACY_MODEL = "en_core_web_lg"
 
-# Presidio's built-in structured recognizers we rely on, each mapped to a tag.
-_STRUCTURED_OPERATORS = {
+# Presidio entities we redact, each mapped to a tag. PERSON and LOCATION come from
+# the spaCy NER model; the rest are Presidio's regex/checksum recognizers.
+_ENTITY_TAGS = {
+    "PERSON": NAME_TAG,
     "EMAIL_ADDRESS": EMAIL_TAG,
+    "PHONE_NUMBER": PHONE_TAG,
     "US_SSN": SSN_TAG,
     "CREDIT_CARD": BANK_TAG,
     "IBAN_CODE": BANK_TAG,
     "US_BANK_NUMBER": BANK_TAG,
     "LOCATION": ADDRESS_TAG,
+    # Custom recognizer registered below; Presidio ships nothing for street lines.
+    "STREET_ADDRESS": ADDRESS_TAG,
 }
+
+# Street-address line: a house number, a few name words, then a street-type
+# suffix, optionally a direction. Presidio/spaCy NER catch named places (cities,
+# states) but not free-form street lines, so this closes the most common gap
+# without a transformer. Compiled by Presidio with IGNORECASE.
+_STREET_ADDRESS_REGEX = (
+    r"\b\d{1,6}\s+(?:[A-Za-z0-9.\-']+\s+){0,4}"
+    r"(?:street|st|avenue|ave|lane|ln|road|rd|boulevard|blvd|drive|dr|court|ct"
+    r"|place|pl|way|terrace|ter|circle|cir|highway|hwy|parkway|pkwy|square|sq"
+    r"|trail|trl|route|rte|crossing|xing|loop|row|alley|plaza|commons)\b\.?"
+    r"(?:\s+(?:northeast|northwest|southeast|southwest|north|south|east|west"
+    r"|ne|nw|se|sw|n|s|e|w)\b)?"
+)
 
 
 class PiiSetupError(Exception):
@@ -71,7 +96,11 @@ def _build_engine():  # noqa: ANN202 — Presidio types are untyped
     dependency or its spaCy model is missing.
     """
     try:
-        from presidio_analyzer import AnalyzerEngine  # type: ignore[import-not-found]
+        from presidio_analyzer import (  # type: ignore[import-not-found]
+            AnalyzerEngine,
+            Pattern,
+            PatternRecognizer,
+        )
         from presidio_analyzer.nlp_engine import (  # type: ignore[import-not-found]
             NlpEngineProvider,
         )
@@ -101,13 +130,19 @@ def _build_engine():  # noqa: ANN202 — Presidio types are untyped
         ) from exc
 
     analyzer = AnalyzerEngine(nlp_engine=nlp_engine, supported_languages=["en"])
+    analyzer.registry.add_recognizer(
+        PatternRecognizer(
+            supported_entity="STREET_ADDRESS",
+            patterns=[Pattern(name="street_address", regex=_STREET_ADDRESS_REGEX, score=0.6)],
+        )
+    )
     anonymizer = AnonymizerEngine()
 
     operators = {
         entity: OperatorConfig("replace", {"new_value": tag})
-        for entity, tag in _STRUCTURED_OPERATORS.items()
+        for entity, tag in _ENTITY_TAGS.items()
     }
-    entities = list(_STRUCTURED_OPERATORS)
+    entities = list(_ENTITY_TAGS)
 
     def analyze(text: str):  # noqa: ANN202
         return analyzer.analyze(text=text, entities=entities, language="en")

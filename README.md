@@ -177,12 +177,15 @@ Session + prefs live in `~/.opengradient/local/` (override with `OG_VEIL_HOME`).
 
 ### Local PII redaction (opt-in)
 
-Veil already keeps prompts private end-to-end — OHTTP splits *who you are* from
-*what you ask*, and the enclave is attested and reproducible. Local PII scrubbing
-is **defense-in-depth** on top of that: when enabled, high-impact PII is
-irreversibly replaced with `[REDACTED_*]` tags *before* the prompt is encrypted to
-the TEE, so the raw values never leave your machine. Handy for compliance,
-data-residency, and keeping PII out of any model-side logging.
+Veil's privacy guarantee is *unlinkability* — OHTTP splits *who you are* from
+*what you ask*, so the model provider sees your prompt but believes it came from
+the enclave, not you. That holds **only if the prompt doesn't name you**: a
+request containing your name, email, and address re-identifies you to the
+provider through the content and undoes the split. Local PII redaction closes
+that gap — when enabled, identity-revealing PII is irreversibly replaced with
+`[REDACTED_*]` tags *before* the prompt is encrypted to the TEE, so it never
+leaves your machine. Think of it as a peace-of-mind backstop to your own
+discretion, not a replacement for it.
 
 Detection is delegated to **Microsoft Presidio** (community-maintained
 recognizers) rather than handrolled patterns, so it ships as an optional extra.
@@ -192,10 +195,10 @@ Install it once:
 pip install 'opengradient-veil[pii]'
 # fetch the spaCy model from the release wheel (avoids issues with `spacy download`
 # in some environments):
-pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl
 ```
 
-Then enable it:
+(`make install-pii` does both.) Then enable it:
 
 ```sh
 og-veil --pii-scrub        # or: export OG_VEIL_PII_SCRUB=1
@@ -203,9 +206,12 @@ og-veil --pii-scrub        # or: export OG_VEIL_PII_SCRUB=1
 
 What gets redacted (each replaced with a `[REDACTED_*]` tag):
 
-- **email, US SSN, bank numbers** — credit cards (Luhn), IBANs (mod-97), and
-  US bank/routing numbers, via Presidio's regex/checksum recognizers.
-- **addresses / locations** — free-form prose, via the spaCy NER model.
+- **names of people, addresses** — the core identity linkers, via the spaCy NER
+  model (`en_core_web_lg`, a ~560 MB CPU model — not a transformer) plus a
+  street-address recognizer for the street lines NER misses.
+- **email, phone numbers** — contact identity.
+- **US SSN, bank numbers** — credit cards (Luhn), IBANs (mod-97), and US
+  bank/routing numbers, via Presidio's regex/checksum recognizers.
 
 Dates are deliberately left alone — too entangled with legitimate prompt content
 to redact without mangling it.
@@ -214,9 +220,10 @@ If `--pii-scrub` is set but the extra/model isn't installed, the server refuses
 to start with an actionable message rather than silently sending PII.
 
 Redaction is **irreversible** — there's no de-anonymization step, so the TEE's
-signed `output_hash` covers exactly what it ran. This is risk-reduction, not a
-guarantee: NER misses a fraction of addresses each run, and bare (unlabelled)
-account numbers can slip through.
+signed `output_hash` covers exactly what it ran. It's risk-reduction, not a
+guarantee, and it's *blunt*: it can't tell your own name from a name you ask
+about, so it over-redacts, and residual signals (writing style, niche topics)
+can still re-identify you.
 
 ## Notes & limitations
 

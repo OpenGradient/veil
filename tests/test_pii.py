@@ -13,6 +13,8 @@ from veil.pii import (
     ADDRESS_TAG,
     BANK_TAG,
     EMAIL_TAG,
+    NAME_TAG,
+    PHONE_TAG,
     SSN_TAG,
     PiiSetupError,
     build_redactor,
@@ -25,7 +27,7 @@ def test_build_redactor_disabled_returns_none():
 
 
 def test_tags_are_distinct():
-    assert len({EMAIL_TAG, SSN_TAG, BANK_TAG, ADDRESS_TAG}) == 4
+    assert len({NAME_TAG, EMAIL_TAG, PHONE_TAG, SSN_TAG, BANK_TAG, ADDRESS_TAG}) == 6
 
 
 # --- everything below needs the [pii] extra + spaCy model ------------------
@@ -43,6 +45,23 @@ def _redactor(**kw):
 @pytest.fixture(scope="module")
 def R():
     return _redactor()
+
+
+def test_name_redacted(R):
+    # Person names — the core identity linker. Needs NER.
+    out = R.scrub_text("Hi, I am Adam Balogh and I need help.")
+    assert "Adam Balogh" not in out and NAME_TAG in out
+
+
+def test_phone_redacted(R):
+    out = R.scrub_text("call me at +1 (415) 555-0142 tomorrow")
+    assert "555-0142" not in out and PHONE_TAG in out
+
+
+def test_street_address_redacted(R):
+    # Street lines need the custom recognizer — spaCy NER alone misses them.
+    out = R.scrub_text("ship it to 25 Park Lane South, Jersey City")
+    assert "25 Park Lane South" not in out and ADDRESS_TAG in out
 
 
 def test_email_redacted(R):
