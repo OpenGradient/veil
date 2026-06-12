@@ -185,25 +185,33 @@ irreversibly replaced with `[REDACTED_*]` tags *before* the prompt is encrypted 
 the TEE, so the raw values never leave your machine. Handy for compliance,
 data-residency, and keeping PII out of any model-side logging.
 
+Detection is delegated to **Microsoft Presidio** (community-maintained
+recognizers) rather than handrolled patterns, so it ships as an optional extra.
+Install it once:
+
+```sh
+pip install 'opengradient-veil[pii]'
+# fetch the spaCy model (from the release wheel — `spacy download` breaks under
+# the click version this project pins):
+pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+```
+
+Then enable it:
+
 ```sh
 og-veil --pii-scrub        # or: export OG_VEIL_PII_SCRUB=1
 ```
 
-Two layered tiers:
+What gets redacted (each replaced with a `[REDACTED_*]` tag):
 
-- **Regex (always on when enabled, zero extra deps)** — email, US SSN, and bank
-  numbers (credit cards Luhn-checked, IBANs mod-97-checked, plus routing/account
-  numbers when labelled). Dates of birth are caught by context (`DOB:`, `born on …`).
-- **Addresses (optional)** — free-form street addresses are prose that regex can't
-  see, so they need a lightweight local NER model. Install the extra once:
+- **email, US SSN, bank numbers** — credit cards (Luhn), IBANs (mod-97), and
+  US bank/routing numbers, via Presidio's regex/checksum recognizers.
+- **addresses / locations** — free-form prose, via the spaCy NER model.
+- **dates of birth** — by default only *birth-date-cued* dates (`DOB:`,
+  `born on …`); pass `--pii-all-dates` to redact every date instead.
 
-  ```sh
-  pip install 'opengradient-veil[pii]'
-  python -m spacy download en_core_web_sm
-  ```
-
-  With the extra present, `--pii-scrub` also redacts addresses/locations. Without
-  it, scrubbing still runs (regex tier) and logs that address coverage is off.
+If `--pii-scrub` is set but the extra/model isn't installed, the server refuses
+to start with an actionable message rather than silently sending PII.
 
 Redaction is **irreversible** — there's no de-anonymization step, so the TEE's
 signed `output_hash` covers exactly what it ran. This is risk-reduction, not a

@@ -21,6 +21,7 @@ from opengradient.client.tee_verify import UnsupportedRequestError
 
 from veil.config import ServerConfig
 from veil.gateway import Gateway, GatewayError
+from veil.pii import PiiSetupError
 from veil.session import AuthError, Session
 
 logger = logging.getLogger(__name__)
@@ -140,7 +141,11 @@ def _error(status: int, message: str):
 def serve(config: ServerConfig) -> None:
     """Load the session, resolve a TEE, and run the local server (blocking)."""
     session = Session.load()
-    gateway = Gateway(session, config)
+    try:
+        gateway = Gateway(session, config)
+    except PiiSetupError as exc:
+        # PII scrubbing was requested but the optional extra/model isn't present.
+        raise SystemExit(f"PII scrubbing is enabled but unavailable: {exc}")
     # Resolve a TEE eagerly so misconfiguration fails fast and /health is useful.
     try:
         gateway._get_client()  # noqa: SLF001 — intentional eager warm-up

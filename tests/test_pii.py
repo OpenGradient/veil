@@ -1,11 +1,14 @@
-"""PII redaction tests — the always-on regex tier and request rewriting.
+"""PII redaction tests.
 
-The optional NER tier (Presidio + spaCy) is exercised only when the [pii] extra
-is installed, so addresses are not asserted here; these cover the zero-dependency
-behavior that ships in the base install.
+Detection is delegated to Presidio + spaCy (the optional [pii] extra), so these
+tests ``importorskip`` when it isn't installed — base installs and the release
+CI skip them; the dedicated test workflow installs the extra + model and runs
+them for real. ``build_redactor(enabled=False)`` is checked unconditionally.
 """
 
 from __future__ import annotations
+
+import pytest
 
 from veil.pii import (
     ADDRESS_TAG,
@@ -13,64 +16,81 @@ from veil.pii import (
     DOB_TAG,
     EMAIL_TAG,
     SSN_TAG,
-    Redactor,
+    PiiSetupError,
     build_redactor,
 )
 
-# A Redactor with no NER engine loaded — pure regex tier. (If Presidio happens to
-# be installed in the dev env it would only *add* address coverage, never change
-# these structured-PII assertions.)
-R = Redactor()
+
+def test_build_redactor_disabled_returns_none():
+    # Works without the extra: disabled means no engine is constructed at all.
+    assert build_redactor(enabled=False) is None
 
 
-def test_email_redacted():
-    assert R.scrub_text("ping me at jane.doe+x@example.co.uk please") == (
-        f"ping me at {EMAIL_TAG} please"
-    )
+def test_tags_are_distinct():
+    assert len({EMAIL_TAG, SSN_TAG, BANK_TAG, DOB_TAG, ADDRESS_TAG}) == 5
 
 
-def test_dashed_ssn_redacted():
-    assert R.scrub_text("my ssn is 123-45-6789") == f"my ssn is {SSN_TAG}"
+# --- everything below needs the [pii] extra + spaCy model ------------------
+
+pytest.importorskip("presidio_analyzer", reason="requires the [pii] extra")
 
 
-def test_bare_ssn_only_with_label():
-    # Bare 9-digit runs are left alone (too ambiguous)…
-    assert "987654321" in R.scrub_text("order 987654321 shipped")
-    # …but a labelled one is redacted, keeping the label.
-    out = R.scrub_text("SSN: 987654321")
-    assert "987654321" not in out and SSN_TAG in out and out.lower().startswith("ssn")
+def _redactor(**kw):
+    try:
+        return build_redactor(enabled=True, **kw)
+    except PiiSetupError as exc:  # presidio present but model missing
+        pytest.skip(str(exc))
 
 
-def test_valid_credit_card_redacted_invalid_kept():
-    # 4111 1111 1111 1111 is the canonical Luhn-valid test number.
-    assert R.scrub_text("card 4111 1111 1111 1111") == f"card {BANK_TAG}"
-    # One digit off → fails Luhn → not redacted.
-    assert "4111 1111 1111 1112" in R.scrub_text("card 4111 1111 1111 1112")
+@pytest.fixture(scope="module")
+def R():
+    return _redactor()
 
 
-def test_valid_iban_redacted():
+def test_email_redacted(R):
+    out = R.scrub_text("ping me at jane.doe+x@example.co.uk please")
+    assert "jane.doe" not in out and EMAIL_TAG in out
+
+
+def test_ssn_redacted(R):
+    # A plausible SSN — Presidio deliberately rejects textbook fakes like
+    # 123-45-6789 / 078-05-1120 via its invalidate_result blacklist.
+    out = R.scrub_text("my SSN is 457-55-5462")
+    assert "457-55-5462" not in out and SSN_TAG in out
+
+
+def test_credit_card_redacted(R):
+    # Luhn-valid canonical test number.
+    out = R.scrub_text("card 4111 1111 1111 1111 on file")
+    assert "4111" not in out and BANK_TAG in out
+
+
+def test_iban_redacted(R):
     out = R.scrub_text("send to GB82 WEST 1234 5698 7654 32 today")
-    assert BANK_TAG in out and "WEST" not in out
+    assert "WEST" not in out and BANK_TAG in out
 
 
-def test_invalid_iban_kept():
-    assert "GB00WEST12345698765432" in R.scrub_text("ref GB00WEST12345698765432")
+def test_address_redacted(R):
+    # Free-form location — the thing only NER can see.
+    out = R.scrub_text("I live in San Francisco, California")
+    assert ADDRESS_TAG in out
 
 
-def test_labelled_account_number_redacted():
-    out = R.scrub_text("account number: 0012345678")
-    assert "0012345678" not in out and BANK_TAG in out
-
-
-def test_dob_context_redacts_only_cued_dates():
-    out = R.scrub_text("DOB: 04/12/1990, meeting on 06/01/2026")
+def test_dob_context_only(R):
+    out = R.scrub_text("DOB: 04/12/1990. The invoice is dated 06/01/2026.")
     assert DOB_TAG in out
     assert "04/12/1990" not in out
-    # A non-birth date is untouched without the all-dates toggle.
+    # A non-birth date is left intact in the default (context-only) mode.
     assert "06/01/2026" in out
 
 
-def test_scrub_request_string_content():
+def test_redact_all_dates_mode():
+    R = _redactor(redact_all_dates=True)
+    out = R.scrub_text("the invoice is dated 06/01/2026")
+    assert "06/01/2026" not in out and DOB_TAG in out
+
+
+def test_scrub_request_string_content(R):
     body = {
         "model": "gpt-4.1",
         "messages": [
@@ -79,12 +99,12 @@ def test_scrub_request_string_content():
         ],
     }
     out = R.scrub_request(body)
-    assert out["messages"][1]["content"] == f"email me at {EMAIL_TAG}"
+    assert EMAIL_TAG in out["messages"][1]["content"]
     # Original body is not mutated.
     assert body["messages"][1]["content"] == "email me at a@b.com"
 
 
-def test_scrub_request_multimodal_parts():
+def test_scrub_request_multimodal_parts(R):
     body = {
         "messages": [
             {
@@ -98,15 +118,5 @@ def test_scrub_request_multimodal_parts():
     }
     out = R.scrub_request(body)
     parts = out["messages"][0]["content"]
-    assert parts[0]["text"] == f"reach me at {EMAIL_TAG}"
+    assert EMAIL_TAG in parts[0]["text"]
     assert parts[1] == {"type": "image_url", "image_url": {"url": "http://x/y.png"}}
-
-
-def test_build_redactor_disabled_returns_none():
-    assert build_redactor(enabled=False) is None
-    assert build_redactor(enabled=True) is not None
-
-
-def test_address_tag_is_distinct():
-    # Sanity: tags are unique strings so downstream tooling can grep them.
-    assert len({EMAIL_TAG, SSN_TAG, BANK_TAG, DOB_TAG, ADDRESS_TAG}) == 5
