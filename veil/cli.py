@@ -13,7 +13,7 @@ import sys
 
 import click
 
-from veil.config import DEFAULT_APP_NAME, DEFAULT_APP_URL, ServerConfig
+from veil.config import DEFAULT_APP_URL, ServerConfig
 from veil.session import AuthError, Session, login, login_manual
 
 
@@ -194,26 +194,20 @@ def endpoint() -> None:
 
 @main.command(name="login")
 @click.option("--app-url", default=DEFAULT_APP_URL, show_default=True, help="Chat app web origin.")
-@click.option(
-    "--app-name",
-    default=DEFAULT_APP_NAME,
-    show_default=True,
-    help="Name shown for this CLI on the auth page.",
-)
 @click.option("--no-browser", is_flag=True, help="Don't open a browser; print the URL instead.")
 @click.option(
     "--manual",
     is_flag=True,
     help="Paste the CLI-auth token instead of using the loopback callback.",
 )
-def login_cmd(app_url: str, app_name: str, no_browser: bool, manual: bool) -> None:
+def login_cmd(app_url: str, no_browser: bool, manual: bool) -> None:
     """Authorize this device using your OpenGradient Chat account."""
     try:
         if manual:
             click.echo("Paste the cli-auth token JSON, then press Ctrl-D:")
             session = login_manual(sys.stdin.read())
         else:
-            session = login(app_url, app_name=app_name, open_browser=not no_browser)
+            session = login(app_url, open_browser=not no_browser)
     except AuthError as exc:
         raise click.ClickException(str(exc))
     click.secho(f"✓ Logged in as {session.user_email or 'unknown'}", fg="green")

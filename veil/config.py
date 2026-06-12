@@ -21,11 +21,6 @@ OHTTP_RELAY_PATH = "/api/v1/chat/ohttp"
 # OG_VEIL_APP_URL or `og-veil login --app-url ...`.
 DEFAULT_APP_URL = os.getenv("OG_VEIL_APP_URL", "https://chat.opengradient.ai")
 
-# Name shown for this CLI on the chat-app /cli-auth page ("Connect the <name> CLI").
-# The page defaults to "ghost" when no name is supplied; we pass our own branding.
-# Override with OG_VEIL_APP_NAME or `og-veil login --app-name ...`.
-DEFAULT_APP_NAME = os.getenv("OG_VEIL_APP_NAME", "OpenGradient Local")
-
 
 def config_home() -> Path:
     """Directory holding the saved login session.
