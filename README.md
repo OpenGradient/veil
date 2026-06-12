@@ -20,7 +20,7 @@ og-local
 Point your agent at it:
 
 ```sh
-export OPENAI_BASE_URL=http://127.0.0.1:11434/v1 # or http://opengradient.local if configured
+export OPENAI_BASE_URL=http://127.0.0.1:11434/v1 
 export OPENAI_API_KEY=og-local            # ignored; your Chat login authenticates
 ```
 
