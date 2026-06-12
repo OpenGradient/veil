@@ -2087,7 +2087,7 @@ wheels = [
 [[package]]
 name = "opengradient"
 version = "1.1.0"
-source = { editable = "../OpenGradient-SDK" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "cryptography" },
@@ -2104,35 +2104,10 @@ dependencies = [
     { name = "requests-toolbelt" },
     { name = "web3" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.1.7" },
-    { name = "cryptography", specifier = ">=43.0.0" },
-    { name = "eth-account", specifier = ">=0.13.4" },
-    { name = "firebase-rest-api", specifier = ">=1.11.0" },
-    { name = "langchain", specifier = ">=0.3.7" },
-    { name = "langgraph", marker = "extra == 'dev'" },
-    { name = "mypy", marker = "extra == 'dev'" },
-    { name = "numpy", specifier = ">=1.26.4" },
-    { name = "og-x402", specifier = ">=0.0.2.dev2" },
-    { name = "og-x402", extras = ["extensions"], specifier = ">=0.0.2.dev2" },
-    { name = "openai", specifier = ">=1.58.1" },
-    { name = "pdoc3", marker = "extra == 'dev'", specifier = "==0.10.0" },
-    { name = "pydantic", specifier = ">=2.9.2" },
-    { name = "pyhpke", specifier = ">=0.6.0" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'" },
-    { name = "requests", specifier = ">=2.32.3" },
-    { name = "requests-toolbelt", specifier = ">=0.9.1" },
-    { name = "ruff", marker = "extra == 'dev'" },
-    { name = "types-protobuf", marker = "extra == 'dev'" },
-    { name = "web3", specifier = ">=7.3.0" },
+sdist = { url = "https://files.pythonhosted.org/packages/52/d5/7dd44a1732c6ffe6c798a67da0c27834bc1aef9ad0de31a25b4f5759cac0/opengradient-1.1.0.tar.gz", hash = "sha256:40834ef5e8734a435afef315437c14b48b622449b9009cdb923322a5d96d776c", size = 93405, upload-time = "2026-06-12T16:18:27.016Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/cd/7bd3a1ae1ebb8813108bb742775e92141443a8bf320117f44370c7f7f860/opengradient-1.1.0-py3-none-any.whl", hash = "sha256:e7d3c7b4a973efbec687b3043fdaf95f5cb82efce665a75659eeee7de6c09c99", size = 99436, upload-time = "2026-06-12T16:18:25.645Z" },
 ]
-provides-extras = ["dev"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "setuptools", specifier = ">=82.0.1" }]
 
 [[package]]
 name = "opengradient-local"
@@ -2158,7 +2133,7 @@ test = [
 requires-dist = [
     { name = "click", specifier = ">=8.1.0" },
     { name = "flask", specifier = ">=3.0.0" },
-    { name = "opengradient", editable = "../OpenGradient-SDK" },
+    { name = "opengradient", specifier = ">=1.1.0" },
     { name = "requests", specifier = ">=2.32.0" },
 ]
 

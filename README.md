@@ -56,31 +56,29 @@ expected reproducible-build PCR (`--expected-pcr`) and any TEE whose on-chain
 ## Quick start
 
 ```sh
-# 1. Install (pipx keeps it isolated; plain pip works too)
 pipx install opengradient-local      # or: pip install opengradient-local
+og-local                             # does everything: logs you in, then serves
+```
 
-# 2. Authorize this device with your OpenGradient Chat account.
-#    Opens a browser; the relay settles payment against your account, so no
-#    wallet or private key ever lives in this process.
-og-local login
+That single command opens a browser to authorize this device with your
+OpenGradient Chat account (the relay settles payment against your account, so no
+wallet or private key ever lives in this process), then starts the local server:
 
-# 3. (optional) Map the friendly hostname http://opengradient.inference -> localhost
-og-local setup-host                  # one-time; edits your hosts file (needs sudo)
-
-# 4. Run the local server
-og-local serve
-#   → listening on http://127.0.0.1:11434
+```
+OpenGradient Local listening on http://127.0.0.1:11434
 ```
 
 Then point your agent at it — **the only change**:
 
 ```sh
-export OPENAI_BASE_URL=http://opengradient.inference:11434/v1   # or http://127.0.0.1:11434/v1
+export OPENAI_BASE_URL=http://127.0.0.1:11434/v1
 export OPENAI_API_KEY=og-local   # ignored; your Chat session authenticates
 ```
 
-> Want the clean `http://opengradient.inference/v1` (no port)? Run
-> `og-local serve --port 80` (binding port 80 needs elevated privileges).
+> **Prettier URL (optional).** `og-local --setup-host` also maps
+> `http://opengradient.inference` → your local server (one-time, edits the hosts
+> file), so agents can use `http://opengradient.inference:11434/v1`. Add
+> `--port 80` for the clean no-port form (needs elevated privileges).
 
 ```python
 from openai import OpenAI
@@ -105,9 +103,10 @@ machine.
 
 | Command | Description |
 |---------|-------------|
-| `og-local login [--app-url URL] [--manual]` | Authorize this device via the Chat app (default `https://chat.opengradient.ai`). |
-| `og-local setup-host` | Map `opengradient.inference` → `127.0.0.1` in the system hosts file. |
-| `og-local serve [--host] [--port] [--tee-id] [--expected-pcr]` | Run the local server. |
+| `og-local` | **The one command** — log in if needed, then serve. |
+| `og-local serve [--port] [--tee-id] [--expected-pcr] [--setup-host] ...` | Same as above, with options (auto-logs-in if no session). |
+| `og-local login [--app-url URL] [--manual]` | Just authorize this device (default `https://chat.opengradient.ai`). |
+| `og-local setup-host` | Just map `opengradient.inference` → `127.0.0.1` in the hosts file. |
 | `og-local status` | Show login + resolved network config. |
 | `og-local logout` | Remove the saved session. |
 
