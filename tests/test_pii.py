@@ -1,9 +1,8 @@
 """PII redaction tests.
 
 Detection is delegated to Presidio + spaCy (the optional [pii] extra), so these
-tests ``importorskip`` when it isn't installed — base installs and the release
-CI skip them; the dedicated test workflow installs the extra + model and runs
-them for real. ``build_redactor(enabled=False)`` is checked unconditionally.
+tests skip when the dependency or spaCy model isn't installed. ``build_redactor(enabled=False)``
+is checked unconditionally.
 """
 
 from __future__ import annotations
