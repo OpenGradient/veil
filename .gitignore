@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+
+# Local state (auth session lives in ~/.opengradient/local by default, but never
+# commit a session that lands in-tree)
+session.json
+*.log
+.env
