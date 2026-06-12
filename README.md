@@ -1,6 +1,6 @@
 # OpenGradient Local
 
-**Drop-in, self-verifying private inference for AI agents.**
+**Drop-in, self-verifying confidential inference for AI agents.**
 
 Point any OpenAI SDK at `og-local` with one env var. It routes your prompts to
 OpenGradient's network of attestable TEE gateways and **cryptographically
