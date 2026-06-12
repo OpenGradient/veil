@@ -17,6 +17,12 @@ network. Your agent's code doesn't change.
 
 ## Quickstart
 
+**Requirements:** a [chat.opengradient.ai](https://chat.opengradient.ai)
+account — the first run logs you in through it, and the relay bills inference
+against that account (no wallet or key lives here). Prompts run on OpenGradient's
+decentralized network of attested Nitro TEE gateways; `og-veil` just discovers,
+encrypts to, and verifies them locally.
+
 ```sh
 # install (needs Python 3.11+; uv grabs one for you)
 uv tool install opengradient-veil        # or: pipx install opengradient-veil
