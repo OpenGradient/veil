@@ -1,11 +1,18 @@
 # OpenGradient Veil
 
-**Drop-in, self-verifying confidential inference for AI agents.**
+**Drop-in confidential, self-verifying inference for AI agents.**
 
-Point any OpenAI SDK at `og-local` with one env var. It routes your prompts to
-OpenGradient's network of attestable TEE gateways and **cryptographically
-verifies every response before a single token reaches your code** — so you trust
-math, not us, the host, or the network. Your agent's code doesn't change.
+Point any OpenAI SDK at `og-local` with one env var. Your prompts are encrypted
+end-to-end to an attested TEE enclave, and every response is cryptographically
+verified before it reaches your code. You trust math — not us, the host, or the
+network. Your agent's code doesn't change.
+
+- **Private** — prompts and completions are sealed (Oblivious HTTP) straight to
+  the enclave. The relay, the host, and the network see only ciphertext; nobody
+  in between — including us — can read your data.
+- **Verified** — each response is signed *inside* the enclave and checked on your
+  machine, proving it ran in known, reproducible code and wasn't tampered with.
+  Nothing unverified ever reaches your agent.
 
 ## Quickstart
 
