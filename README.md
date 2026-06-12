@@ -19,7 +19,7 @@ network. Your agent's code doesn't change.
 
 ```sh
 # install (needs Python 3.11+; uv grabs one for you)
-uv tool install opengradient-local        # or: pipx install opengradient-local
+uv tool install opengradient-veil        # or: pipx install opengradient-veil
 
 # run — logs you in (browser) the first time, then serves in the background
 og-veil
