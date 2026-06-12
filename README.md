@@ -4,7 +4,7 @@
 
 Point any OpenAI SDK at `og-veil` with one env var. Your prompts are encrypted via Oblivious HTTP
 end-to-end to an attested TEE enclave, and every response is cryptographically
-verified before it reaches your code. You trust math - not us, the host, or the
+verified before it reaches your agent, keeping every prompt private and verifiable. You trust math - not us, the host, or the
 network. Your agent's code doesn't change.
 
 - **Private & unlinkable** - Oblivious HTTP splits *who you are* from *what you
