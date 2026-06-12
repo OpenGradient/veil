@@ -30,6 +30,9 @@ from veil.config import session_path
 
 BUNDLE_TYPE = "opengradient-cli-auth"
 
+# Name shown for this CLI on the chat-app /cli-auth page ("Connect the <name> CLI").
+APP_NAME = "opengradient-veil"
+
 
 class AuthError(Exception):
     """Login failed or no valid session is available."""
@@ -210,7 +213,8 @@ def login(app_url: str, *, open_browser: bool = True, timeout: float = 300.0) ->
     server = HTTPServer(("127.0.0.1", 0), Handler)
     port = server.server_address[1]
     redirect_uri = f"http://127.0.0.1:{port}"
-    auth_url = f"{app_url.rstrip('/')}/cli-auth?{urlencode({'redirect_uri': redirect_uri})}"
+    query = urlencode({"redirect_uri": redirect_uri, "app_name": APP_NAME})
+    auth_url = f"{app_url.rstrip('/')}/cli-auth?{query}"
 
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
