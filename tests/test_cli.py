@@ -65,6 +65,45 @@ def test_endpoint_prints_env_vars():
     assert result.exit_code == 0
 
 
+def test_test_command_posts_prompt_to_localhost_and_prints_reply():
+    resp = mock.MagicMock(
+        status_code=200,
+        headers={"X-OpenGradient-TEE-Id": "0xabc"},
+    )
+    resp.json.return_value = {
+        "choices": [{"message": {"content": "hello from the TEE"}}],
+        "opengradient_verification": {"tee_id": "0xabc"},
+    }
+    with mock.patch("requests.post", return_value=resp) as post:
+        out = CliRunner().invoke(cli.main, ["test", "ping", "the", "enclave"])
+    assert out.exit_code == 0
+    # Posts to the localhost OpenAI-compatible endpoint with the joined prompt.
+    url = post.call_args.args[0]
+    assert url == "http://127.0.0.1:11434/v1/chat/completions"
+    body = post.call_args.kwargs["json"]
+    assert body["messages"][0]["content"] == "ping the enclave"
+    assert "hello from the TEE" in out.output
+    assert "0xabc" in out.output
+
+
+def test_test_command_reports_server_not_running():
+    import requests
+
+    with mock.patch("requests.post", side_effect=requests.exceptions.ConnectionError()):
+        out = CliRunner().invoke(cli.main, ["test", "hi"])
+    assert out.exit_code != 0
+    assert "is it running" in out.output
+
+
+def test_test_command_surfaces_server_error():
+    resp = mock.MagicMock(status_code=503)
+    resp.json.return_value = {"error": {"message": "no usable TEE"}}
+    with mock.patch("requests.post", return_value=resp):
+        out = CliRunner().invoke(cli.main, ["test", "hi"])
+    assert out.exit_code != 0
+    assert "no usable TEE" in out.output
+
+
 def test_update_runs_upgrade_command():
     with mock.patch("subprocess.run") as run:
         result = CliRunner().invoke(cli.main, ["update"])

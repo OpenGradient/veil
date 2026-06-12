@@ -2,8 +2,8 @@
 
 The common path is a single command: run ``og-veil`` and it logs you in on first
 use, then starts the local server in the background. Individual steps (``serve``,
-``login``, ``stop``, ``status``, ``endpoint``, ``update``, ``logout``) are
-available on their own too.
+``login``, ``stop``, ``status``, ``endpoint``, ``test``, ``update``, ``logout``)
+are available on their own too.
 """
 
 from __future__ import annotations
@@ -211,6 +211,53 @@ def login_cmd(app_url: str, no_browser: bool, manual: bool) -> None:
     except AuthError as exc:
         raise click.ClickException(str(exc))
     click.secho(f"✓ Logged in as {session.user_email or 'unknown'}", fg="green")
+
+
+@main.command(name="test")
+@click.argument("prompt", nargs=-1)
+@click.option("--model", default="gpt-4.1", show_default=True, help="Model to send the prompt to.")
+def test_cmd(prompt: tuple[str, ...], model: str) -> None:
+    """Send a one-off PROMPT to the running local server and print the reply.
+
+    Posts to the localhost OpenAI-compatible endpoint — the same one your agent
+    uses — so the background server must already be running (start it with
+    ``og-veil``). The reply is verified TEE output.
+    """
+    import requests
+
+    text = " ".join(prompt).strip() or "Say hello from a verified TEE in one short sentence."
+
+    config = ServerConfig.from_env()
+    base_url = config.advertised_base_url()
+    body = {"model": model, "messages": [{"role": "user", "content": text}]}
+    try:
+        resp = requests.post(f"{base_url}/chat/completions", json=body, timeout=120)
+    except requests.exceptions.RequestException as exc:
+        raise click.ClickException(
+            f"could not reach the local server at {base_url} ({type(exc).__name__}) "
+            "— is it running? start it with `og-veil`"
+        )
+
+    if resp.status_code != 200:
+        message = resp.text
+        try:
+            message = resp.json()["error"]["message"]
+        except (ValueError, KeyError, TypeError):
+            pass
+        raise click.ClickException(f"server returned {resp.status_code}: {message}")
+
+    data = resp.json()
+    content = ""
+    try:
+        content = data["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError):
+        content = ""
+
+    click.secho(f"> {text}", fg="cyan")
+    click.echo(content or "(empty response)")
+    verification = data.get("opengradient_verification") or {}
+    tee_id = verification.get("tee_id") or resp.headers.get("X-OpenGradient-TEE-Id", "?")
+    click.secho(f"\n✓ verified — tee_id={tee_id}", fg="green")
 
 
 @main.command()
