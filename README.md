@@ -4,7 +4,7 @@
 
 Point any OpenAI SDK at `og-veil` with one env var. Your prompts are encrypted
 end-to-end to an attested TEE enclave, and every response is cryptographically
-verified before it reaches your code. You trust math — not us, the host, or the
+verified before it reaches your code. You trust math - not us, the host, or the
 network. Your agent's code doesn't change.
 
 - **Private & unlinkable** - Oblivious HTTP splits *who you are* from *what you
@@ -18,9 +18,9 @@ network. Your agent's code doesn't change.
 ## Quickstart
 
 **Requirements:** a [chat.opengradient.ai](https://chat.opengradient.ai)
-account — the first run logs you in through it, and the relay bills inference
+account - the first run logs you in through it, and the relay bills inference
 against that account (no wallet or key lives here). Prompts run on OpenGradient's
-decentralized network of attested Nitro TEE gateways; `og-veil` just discovers,
+decentralized network of attested TEE gateways and OHTTP proxy; `og-veil` just discovers,
 encrypts to, and verifies them locally.
 
 ```sh
