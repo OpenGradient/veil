@@ -111,10 +111,22 @@ machine.
 |---------|-------------|
 | `og-local` | **The one command** — first-run setup wizard if needed, then serve. |
 | `og-local setup [-y]` | Re-run the setup wizard (login + friendly-URL choice). |
-| `og-local serve [--port] [--tee-id] [--expected-pcr] ...` | Serve (runs setup on first use; auto-logs-in if no session). |
+| `og-local serve [--port] [--tee-id] [--expected-pcr] [-d/--background] ...` | Serve (runs setup on first use; `-d` detaches it). |
+| `og-local stop` | Stop a server started with `--background`. |
 | `og-local login [--app-url URL] [--manual]` | Authorize / re-authorize this device (default `https://chat.opengradient.ai`). |
-| `og-local status` | Show login + resolved network config. |
+| `og-local status` | Show login, network config, and whether a background server is running. |
 | `og-local logout` | Remove the saved session. |
+
+### Run in the background
+
+```sh
+og-local serve --background     # setup (foreground) then detaches; prints pid + log path
+og-local status                 # shows "Background: running (pid …)"
+og-local stop                   # stops it
+```
+
+Logs go to `~/.opengradient/local/server.log`. (Login still happens in the
+foreground so you can complete the browser flow before it detaches.)
 
 ## Staying signed in
 

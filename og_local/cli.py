@@ -146,6 +146,15 @@ def setup(app_url: str, no_browser: bool, yes: bool) -> None:
     "--no-browser", is_flag=True, help="During login, print the URL instead of opening a browser."
 )
 @click.option("-y", "--yes", is_flag=True, help="Accept setup defaults (non-interactive).")
+@click.option(
+    "-d", "--background", is_flag=True, help="Run the server detached; manage with `og-local stop`."
+)
+@click.option(
+    "--skip-setup",
+    is_flag=True,
+    hidden=True,
+    help="Internal: skip the setup wizard (used by --background).",
+)
 def serve(
     host: str | None,
     port: int | None,
@@ -154,20 +163,23 @@ def serve(
     app_url: str,
     no_browser: bool,
     yes: bool,
+    background: bool,
+    skip_setup: bool,
 ) -> None:
     """Set up on first run (login + friendly URL), then run the local server."""
     from og_local.server import serve as run_server
 
-    try:
-        _run_setup(
-            app_url=app_url,
-            open_browser=not no_browser,
-            interactive=sys.stdin.isatty(),
-            assume_yes=yes,
-            force=False,
-        )
-    except AuthError as exc:
-        raise click.ClickException(str(exc))
+    if not skip_setup:
+        try:
+            _run_setup(
+                app_url=app_url,
+                open_browser=not no_browser,
+                interactive=sys.stdin.isatty(),
+                assume_yes=yes,
+                force=False,
+            )
+        except AuthError as exc:
+            raise click.ClickException(str(exc))
 
     config = ServerConfig.from_env()
     if host:
@@ -180,7 +192,43 @@ def serve(
         config.expected_pcr_hash = (
             expected_pcr if expected_pcr.startswith("0x") else "0x" + expected_pcr
         ).lower()
+
+    if background:
+        from og_local.daemon import log_path, start_background
+
+        # Setup is done; hand the child only the server-shaping flags.
+        flags: list[str] = []
+        if host:
+            flags += ["--host", host]
+        if port:
+            flags += ["--port", str(port)]
+        if tee_id:
+            flags += ["--tee-id", tee_id]
+        if expected_pcr:
+            flags += ["--expected-pcr", expected_pcr]
+        try:
+            pid = start_background(flags)
+        except RuntimeError as exc:
+            raise click.ClickException(str(exc))
+        click.secho(f"✓ OpenGradient Local running in the background (pid {pid}).", fg="green")
+        click.echo(f"  Base URL : {config.advertised_base_url()}")
+        click.echo(f"  Logs     : {log_path()}")
+        click.echo("  Stop     : og-local stop")
+        return
+
     run_server(config)
+
+
+@main.command()
+def stop() -> None:
+    """Stop a background server started with `og-local serve --background`."""
+    from og_local.daemon import stop_background
+
+    pid = stop_background()
+    if pid is None:
+        click.echo("No background server is running.")
+    else:
+        click.secho(f"✓ Stopped background server (pid {pid}).", fg="green")
 
 
 @main.command(name="login")
@@ -211,6 +259,8 @@ def status() -> None:
         session = Session.load()
     except AuthError as exc:
         raise click.ClickException(str(exc))
+    from og_local.daemon import running_pid
+
     cfg = session.config
     click.echo(f"Signed in as : {session.user_email or 'unknown'}")
     click.echo(f"Environment  : {cfg.app_env}")
@@ -218,6 +268,8 @@ def status() -> None:
     click.echo(
         f"TEE registry : {cfg.tee_registry_address or '(none)'} @ {cfg.tee_registry_rpc_url or '(none)'}"
     )
+    pid = running_pid()
+    click.echo(f"Background   : running (pid {pid})" if pid else "Background   : not running")
 
 
 @main.command()
