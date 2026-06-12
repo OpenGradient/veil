@@ -13,7 +13,6 @@ from veil.pii import (
     ADDRESS_TAG,
     BANK_TAG,
     EMAIL_TAG,
-    NAME_TAG,
     PHONE_TAG,
     SSN_TAG,
     PiiSetupError,
@@ -27,7 +26,7 @@ def test_build_redactor_disabled_returns_none():
 
 
 def test_tags_are_distinct():
-    assert len({NAME_TAG, EMAIL_TAG, PHONE_TAG, SSN_TAG, BANK_TAG, ADDRESS_TAG}) == 6
+    assert len({EMAIL_TAG, PHONE_TAG, SSN_TAG, BANK_TAG, ADDRESS_TAG}) == 5
 
 
 # --- everything below needs the [pii] extra + spaCy model ------------------
@@ -47,10 +46,17 @@ def R():
     return _redactor()
 
 
-def test_name_redacted(R):
-    # Person names — the core identity linker. Needs NER.
-    out = R.scrub_text("Hi, I am Adam Balogh and I need help.")
-    assert "Adam Balogh" not in out and NAME_TAG in out
+def test_names_are_not_redacted(R):
+    # Names are deliberately left in — they over-redact third parties and spaCy
+    # mislabels uncommon names. User discretion covers names.
+    out = R.scrub_text("Reply to Advait about our contractor Julia Smith.")
+    assert "Advait" in out and "Julia Smith" in out
+
+
+def test_free_form_location_not_redacted(R):
+    # Cities/countries are not redacted (only deterministic street lines are).
+    out = R.scrub_text("I live in San Francisco")
+    assert "San Francisco" in out
 
 
 def test_phone_redacted(R):
@@ -59,7 +65,7 @@ def test_phone_redacted(R):
 
 
 def test_street_address_redacted(R):
-    # Street lines need the custom recognizer — spaCy NER alone misses them.
+    # Street lines via the custom deterministic recognizer (no NER).
     out = R.scrub_text("ship it to 25 Park Lane South, Jersey City")
     assert "25 Park Lane South" not in out and ADDRESS_TAG in out
 
@@ -85,12 +91,6 @@ def test_credit_card_redacted(R):
 def test_iban_redacted(R):
     out = R.scrub_text("send to GB82 WEST 1234 5698 7654 32 today")
     assert "WEST" not in out and BANK_TAG in out
-
-
-def test_address_redacted(R):
-    # Free-form location — the thing only NER can see.
-    out = R.scrub_text("I live in San Francisco, California")
-    assert ADDRESS_TAG in out
 
 
 def test_dates_are_not_redacted(R):

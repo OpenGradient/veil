@@ -179,13 +179,12 @@ Session + prefs live in `~/.opengradient/local/` (override with `OG_VEIL_HOME`).
 
 Veil's privacy guarantee is *unlinkability* — OHTTP splits *who you are* from
 *what you ask*, so the model provider sees your prompt but believes it came from
-the enclave, not you. That holds **only if the prompt doesn't name you**: a
-request containing your name, email, and address re-identifies you to the
-provider through the content and undoes the split. Local PII redaction closes
-that gap — when enabled, identity-revealing PII is irreversibly replaced with
-`[REDACTED_*]` tags *before* the prompt is encrypted to the TEE, so it never
-leaves your machine. Think of it as a peace-of-mind backstop to your own
-discretion, not a replacement for it.
+the enclave, not you. That holds only if the prompt content doesn't re-identify
+you. Local PII redaction strips the **concrete, unambiguous identifiers** — when
+enabled, they're irreversibly replaced with `[REDACTED_*]` tags *before* the
+prompt is encrypted to the TEE, so they never leave your machine. It's a
+peace-of-mind backstop for the hard data, not a replacement for your own
+discretion.
 
 Detection is delegated to **Microsoft Presidio** (community-maintained
 recognizers) rather than handrolled patterns, so it ships as an optional extra.
@@ -195,7 +194,7 @@ Install it once:
 pip install 'opengradient-veil[pii]'
 # fetch the spaCy model from the release wheel (avoids issues with `spacy download`
 # in some environments):
-pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl
+pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 ```
 
 (`make install-pii` does both.) Then enable it:
@@ -206,23 +205,25 @@ og-veil --pii-scrub        # or: export OG_VEIL_PII_SCRUB=1
 
 What gets redacted (each replaced with a `[REDACTED_*]` tag):
 
-- **names of people, addresses** — the core identity linkers, via the spaCy NER
-  model (`en_core_web_lg`, a ~560 MB CPU model — not a transformer) plus a
-  street-address recognizer for the street lines NER misses.
 - **email, phone numbers** — contact identity.
 - **US SSN, bank numbers** — credit cards (Luhn), IBANs (mod-97), and US
   bank/routing numbers, via Presidio's regex/checksum recognizers.
+- **street addresses** — a deterministic street-line recognizer.
 
-Dates are deliberately left alone — too entangled with legitimate prompt content
-to redact without mangling it.
+**Names, free-form locations (cities/countries), and dates are deliberately left
+in.** Those rely on statistical NER that over-redacts the third-party names real
+prompts are full of ("reply to *Advait* about *Julia*") and often mislabels
+uncommon names — wrecking the prompt for little gain. Everything redacted here is
+pattern/checksum-based: deterministic, no name guessing. (The small spaCy model
+is just Presidio's tokenizer; no NER entities are redacted.)
 
 If `--pii-scrub` is set but the extra/model isn't installed, the server refuses
 to start with an actionable message rather than silently sending PII.
 
 Redaction is **irreversible** — there's no de-anonymization step, so the TEE's
 signed `output_hash` covers exactly what it ran. It's risk-reduction, not a
-guarantee, and it's *blunt*: it can't tell your own name from a name you ask
-about, so it over-redacts, and residual signals (writing style, niche topics)
+guarantee: because names and free-form text are left in, you stay responsible for
+what you choose to disclose, and residual signals (writing style, niche topics)
 can still re-identify you.
 
 ## Notes & limitations

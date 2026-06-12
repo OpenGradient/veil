@@ -28,7 +28,7 @@ jobs:
         # Installed from the release wheel rather than `spacy download`, which can
         # be unreliable in some environments. Not needed at runtime, only to fetch
         # the model.
-        run: uv pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl
+        run: uv pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 
       - name: Test
         run: make test
