@@ -40,10 +40,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Adds free-form address/location (and optional all-date) PII redaction on top of
-# the always-available, zero-dependency regex tier. Microsoft Presidio drives a
-# spaCy NER model; after installing this extra, download the model once with:
-#   python -m spacy download en_core_web_sm
+# Enables local PII redaction via Microsoft Presidio + spaCy.
+# After installing this extra, install the spaCy model once (e.g. `python -m spacy download en_core_web_sm`
+# or by installing the `en_core_web_sm` wheel).
 pii = [
     "presidio-analyzer>=2.2.0",
     "presidio-anonymizer>=2.2.0",
