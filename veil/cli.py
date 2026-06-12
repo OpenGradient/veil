@@ -85,14 +85,8 @@ def setup(app_url: str, no_browser: bool, yes: bool) -> None:
     "--pii-scrub",
     is_flag=True,
     default=False,
-    help="Redact high-impact PII (email, SSN, bank numbers, DOB; addresses with the [pii] extra) "
+    help="Redact high-impact PII (email, SSN, bank numbers; addresses with the [pii] extra) "
     "from prompts locally before they leave this machine.",
-)
-@click.option(
-    "--pii-all-dates",
-    is_flag=True,
-    default=False,
-    help="With --pii-scrub, redact every date as a DOB (aggressive) instead of only birth-date-cued ones.",
 )
 @click.option(
     "--app-url", default=DEFAULT_APP_URL, show_default=True, help="Chat app web origin for login."
@@ -118,7 +112,6 @@ def serve(
     tee_id: str | None,
     expected_pcr: str | None,
     pii_scrub: bool,
-    pii_all_dates: bool,
     app_url: str,
     no_browser: bool,
     foreground: bool,
@@ -144,8 +137,6 @@ def serve(
         ).lower()
     if pii_scrub:
         config.pii_scrub = True
-    if pii_all_dates:
-        config.pii_redact_all_dates = True
 
     # The detached child (--skip-setup) always runs the server in-process.
     _start_server(config, foreground=foreground or skip_setup)
@@ -159,8 +150,6 @@ def _config_flags(config: ServerConfig) -> list[str]:
         flags += ["--expected-pcr", config.expected_pcr_hash]
     if config.pii_scrub:
         flags += ["--pii-scrub"]
-    if config.pii_redact_all_dates:
-        flags += ["--pii-all-dates"]
     return flags
 
 

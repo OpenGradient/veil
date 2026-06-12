@@ -58,13 +58,9 @@ class ServerConfig:
     pinned_tee_id: str | None = None
 
     # Opt-in local PII redaction: scrub high-impact PII (email, SSN, bank numbers,
-    # DOB, and — with the [pii] extra — addresses) out of the agent's prompt
-    # *before* it leaves this process. Off by default; see veil.pii.
+    # and — with the [pii] extra — addresses) out of the agent's prompt *before*
+    # it leaves this process. Off by default; see veil.pii.
     pii_scrub: bool = False
-
-    # When PII scrubbing is on, also redact *every* date as a DOB (aggressive,
-    # safer). Off by default, so only birth-date-cued dates are redacted.
-    pii_redact_all_dates: bool = False
 
     @classmethod
     def from_env(cls) -> "ServerConfig":
@@ -74,7 +70,6 @@ class ServerConfig:
             expected_pcr_hash=_norm_hex(os.getenv("OG_VEIL_EXPECTED_PCR_HASH")),
             pinned_tee_id=_norm_hex(os.getenv("OG_VEIL_TEE_ID")),
             pii_scrub=_env_bool(os.getenv("OG_VEIL_PII_SCRUB")),
-            pii_redact_all_dates=_env_bool(os.getenv("OG_VEIL_PII_REDACT_ALL_DATES")),
         )
 
     def advertised_base_url(self) -> str:

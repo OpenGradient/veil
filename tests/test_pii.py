@@ -13,7 +13,6 @@ import pytest
 from veil.pii import (
     ADDRESS_TAG,
     BANK_TAG,
-    DOB_TAG,
     EMAIL_TAG,
     SSN_TAG,
     PiiSetupError,
@@ -27,7 +26,7 @@ def test_build_redactor_disabled_returns_none():
 
 
 def test_tags_are_distinct():
-    assert len({EMAIL_TAG, SSN_TAG, BANK_TAG, DOB_TAG, ADDRESS_TAG}) == 5
+    assert len({EMAIL_TAG, SSN_TAG, BANK_TAG, ADDRESS_TAG}) == 4
 
 
 # --- everything below needs the [pii] extra + spaCy model ------------------
@@ -76,18 +75,10 @@ def test_address_redacted(R):
     assert ADDRESS_TAG in out
 
 
-def test_dob_context_only(R):
+def test_dates_are_not_redacted(R):
+    # Dates are deliberately left intact.
     out = R.scrub_text("DOB: 04/12/1990. The invoice is dated 06/01/2026.")
-    assert DOB_TAG in out
-    assert "04/12/1990" not in out
-    # A non-birth date is left intact in the default (context-only) mode.
-    assert "06/01/2026" in out
-
-
-def test_redact_all_dates_mode():
-    R = _redactor(redact_all_dates=True)
-    out = R.scrub_text("the invoice is dated 06/01/2026")
-    assert "06/01/2026" not in out and DOB_TAG in out
+    assert "04/12/1990" in out and "06/01/2026" in out
 
 
 def test_scrub_request_string_content(R):

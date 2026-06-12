@@ -39,9 +39,7 @@ class Gateway:
         self._tee: TEEEndpoint | None = None
         # Optional local PII redaction, applied to the request before it is
         # encrypted to the TEE. ``None`` when disabled (the default).
-        self._redactor = build_redactor(
-            enabled=config.pii_scrub, redact_all_dates=config.pii_redact_all_dates
-        )
+        self._redactor = build_redactor(enabled=config.pii_scrub)
 
         cfg = session.config
         if not cfg.tee_registry_rpc_url or not cfg.tee_registry_address:

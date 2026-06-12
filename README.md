@@ -174,7 +174,6 @@ Session + prefs live in `~/.opengradient/local/` (override with `OG_VEIL_HOME`).
 | `OG_VEIL_EXPECTED_PCR_HASH` | `--expected-pcr` | — | Refuse any TEE whose `pcrHash` differs. |
 | `OG_VEIL_APP_URL` | `--app-url` | `https://chat.opengradient.ai` | Chat app origin for login. |
 | `OG_VEIL_PII_SCRUB` | `--pii-scrub` | off | Redact high-impact PII from prompts locally before they leave the machine. |
-| `OG_VEIL_PII_REDACT_ALL_DATES` | `--pii-all-dates` | off | With scrubbing on, redact *every* date as a DOB (aggressive) instead of only birth-date-cued ones. |
 
 ### Local PII redaction (opt-in)
 
@@ -207,8 +206,9 @@ What gets redacted (each replaced with a `[REDACTED_*]` tag):
 - **email, US SSN, bank numbers** — credit cards (Luhn), IBANs (mod-97), and
   US bank/routing numbers, via Presidio's regex/checksum recognizers.
 - **addresses / locations** — free-form prose, via the spaCy NER model.
-- **dates of birth** — by default only *birth-date-cued* dates (`DOB:`,
-  `born on …`); pass `--pii-all-dates` to redact every date instead.
+
+Dates are deliberately left alone — too entangled with legitimate prompt content
+to redact without mangling it.
 
 If `--pii-scrub` is set but the extra/model isn't installed, the server refuses
 to start with an actionable message rather than silently sending PII.
