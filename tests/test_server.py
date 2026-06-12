@@ -117,6 +117,16 @@ def test_relay_error_status_is_propagated():
     assert "payment required" in resp.get_json()["error"]["message"]
 
 
+def test_relay_401_suggests_relogin():
+    client = _client(_StubGateway(error=RelayError(401, "unauthorized")))
+    resp = client.post(
+        "/v1/chat/completions",
+        json={"model": "gpt-4.1", "messages": [{"role": "user", "content": "x"}]},
+    )
+    assert resp.status_code == 401
+    assert "og-local login" in resp.get_json()["error"]["message"]
+
+
 def test_non_json_request_rejected():
     client = _client(_StubGateway())
     resp = client.post("/v1/chat/completions", data="not json", content_type="text/plain")

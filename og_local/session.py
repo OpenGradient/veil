@@ -100,7 +100,7 @@ class Session:
             self._refresh()
         token = self._data.get("access_token")
         if not token:
-            raise AuthError("session has no access token — log in again")
+            raise AuthError("session has no access token — run `og-local login` to sign in again")
         return token
 
     def _is_expired(self) -> bool:
@@ -112,7 +112,7 @@ class Session:
     def _refresh(self) -> None:
         refresh_token = self._data.get("refresh_token")
         if not refresh_token:
-            raise AuthError("session expired and has no refresh token — log in again")
+            raise AuthError("session expired — run `og-local login` to sign in again")
         url = f"{self.config.supabase_url}/auth/v1/token?grant_type=refresh_token"
         try:
             resp = requests.post(
@@ -125,6 +125,19 @@ class Session:
                 },
                 timeout=15,
             )
+        except requests.RequestException as exc:
+            raise AuthError(
+                f"couldn't reach the auth server to refresh your session: {exc}"
+            ) from exc
+
+        # A revoked/expired refresh token (e.g. you signed out in the Chat app)
+        # comes back as 400/401 — that needs a fresh interactive login, not a retry.
+        if resp.status_code in (400, 401, 403):
+            raise AuthError(
+                "your OpenGradient Chat session was signed out or expired — "
+                "run `og-local login` to sign in again"
+            )
+        try:
             resp.raise_for_status()
             body = resp.json()
         except (requests.RequestException, ValueError) as exc:
@@ -151,7 +164,7 @@ def login(app_url: str, *, open_browser: bool = True, timeout: float = 300.0) ->
     and waits for the Chat app to POST the session bundle back to this machine.
 
     Args:
-        app_url: The Chat app web origin (e.g. ``https://app.opengradient.ai``).
+        app_url: The Chat app web origin (e.g. ``https://chat.opengradient.ai``).
         open_browser: Whether to open the system browser automatically.
         timeout: How long to wait for the callback, in seconds.
 

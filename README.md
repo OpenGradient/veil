@@ -60,25 +60,31 @@ pipx install opengradient-local      # or: pip install opengradient-local
 og-local                             # does everything: logs you in, then serves
 ```
 
-That single command opens a browser to authorize this device with your
-OpenGradient Chat account (the relay settles payment against your account, so no
-wallet or private key ever lives in this process), then starts the local server:
+On the **first run** that single command walks you through a short setup wizard:
+
+1. **Log in** — opens a browser to authorize this device with your OpenGradient
+   Chat account (the relay settles payment against your account, so no wallet or
+   private key ever lives in this process).
+2. **Friendly URL (optional)** — asks whether to map
+   `http://opengradient.inference` → your local server so agents can use a clean
+   base URL. Your choice is remembered.
+
+Then it starts serving (and skips the wizard on subsequent runs):
 
 ```
 OpenGradient Local listening on http://127.0.0.1:11434
 ```
 
-Then point your agent at it — **the only change**:
+Point your agent at it — **the only change**:
 
 ```sh
-export OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+export OPENAI_BASE_URL=http://opengradient.inference:11434/v1   # or http://127.0.0.1:11434/v1
 export OPENAI_API_KEY=og-local   # ignored; your Chat session authenticates
 ```
 
-> **Prettier URL (optional).** `og-local --setup-host` also maps
-> `http://opengradient.inference` → your local server (one-time, edits the hosts
-> file), so agents can use `http://opengradient.inference:11434/v1`. Add
-> `--port 80` for the clean no-port form (needs elevated privileges).
+> Re-run the wizard anytime with `og-local setup`. For the clean
+> `http://opengradient.inference/v1` (no port), serve on port 80:
+> `og-local serve --port 80` (needs elevated privileges).
 
 ```python
 from openai import OpenAI
@@ -103,12 +109,27 @@ machine.
 
 | Command | Description |
 |---------|-------------|
-| `og-local` | **The one command** — log in if needed, then serve. |
-| `og-local serve [--port] [--tee-id] [--expected-pcr] [--setup-host] ...` | Same as above, with options (auto-logs-in if no session). |
-| `og-local login [--app-url URL] [--manual]` | Just authorize this device (default `https://chat.opengradient.ai`). |
-| `og-local setup-host` | Just map `opengradient.inference` → `127.0.0.1` in the hosts file. |
+| `og-local` | **The one command** — first-run setup wizard if needed, then serve. |
+| `og-local setup [-y]` | Re-run the setup wizard (login + friendly-URL choice). |
+| `og-local serve [--port] [--tee-id] [--expected-pcr] ...` | Serve (runs setup on first use; auto-logs-in if no session). |
+| `og-local login [--app-url URL] [--manual]` | Authorize / re-authorize this device (default `https://chat.opengradient.ai`). |
 | `og-local status` | Show login + resolved network config. |
 | `og-local logout` | Remove the saved session. |
+
+## Staying signed in
+
+The Chat session is managed for you over the long run:
+
+- **Auto-refresh.** The short-lived access token is refreshed automatically (a
+  minute before it expires) using the stored refresh token — you don't restart
+  anything.
+- **Signed out upstream?** If you sign out in the Chat app (or the session is
+  revoked), the next request fails with a clear message telling you to run
+  **`og-local login`** to re-authorize. Re-login overwrites the saved session in
+  place; nothing else changes.
+- **A gateway goes offline?** If the selected TEE becomes unreachable, the proxy
+  transparently reselects another active gateway from the on-chain registry and
+  retries once, so a single dead node doesn't take you down.
 
 ## Install from source (development)
 

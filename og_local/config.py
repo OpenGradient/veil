@@ -43,6 +43,30 @@ def session_path() -> Path:
     return config_home() / "session.json"
 
 
+def prefs_path() -> Path:
+    return config_home() / "prefs.json"
+
+
+def load_prefs() -> dict:
+    """Load saved setup preferences (e.g. whether the friendly hostname is wanted)."""
+    import json
+
+    path = prefs_path()
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text())
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def save_prefs(prefs: dict) -> None:
+    import json
+
+    prefs_path().write_text(json.dumps(prefs, indent=2))
+
+
 @dataclass
 class ServerConfig:
     """Settings for the local OpenAI-compatible server."""

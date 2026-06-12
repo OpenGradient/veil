@@ -83,7 +83,11 @@ def create_app(gateway: Gateway) -> Flask:
             logger.error("TEE verification failed: %s", exc)
             return _error(502, f"TEE response verification failed: {exc}")
         except RelayError as exc:
-            return _error(exc.status_code if 400 <= exc.status_code < 600 else 502, exc.message)
+            message = exc.message
+            # The relay rejected our Chat token (signed out / expired upstream).
+            if exc.status_code in (401, 403):
+                message = f"{message} — your session may have expired; run `og-local login` to sign in again"
+            return _error(exc.status_code if 400 <= exc.status_code < 600 else 502, message)
         except Exception as exc:  # noqa: BLE001
             logger.exception("unexpected error handling chat completion")
             return _error(500, f"internal error: {type(exc).__name__}")

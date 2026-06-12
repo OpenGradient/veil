@@ -13,6 +13,7 @@ import logging
 import random
 import threading
 
+import requests
 from opengradient import OhttpRelayClient, TEERegistry, VerifiedChatResponse
 from opengradient.client.tee_registry import TEE_TYPE_LLM_PROXY, TEEEndpoint
 
@@ -111,6 +112,19 @@ class Gateway:
 
     # --- inference ---------------------------------------------------------
     def chat(self, body: dict) -> VerifiedChatResponse:
+        try:
+            return self._chat_once(body)
+        except requests.exceptions.RequestException as exc:
+            # The selected TEE became unreachable (offline, rotated out, network
+            # blip). Drop it, pick another active gateway from the registry, and
+            # retry once — so a single dead node doesn't take the proxy down.
+            logger.warning(
+                "TEE request failed (%s) — reselecting a gateway and retrying", type(exc).__name__
+            )
+            self.reset()
+            return self._chat_once(body)
+
+    def _chat_once(self, body: dict) -> VerifiedChatResponse:
         client = self._get_client()
         if body.get("stream"):
             return client.stream_chat_completion(body)
