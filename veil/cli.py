@@ -2,8 +2,8 @@
 
 The common path is a single command: run ``og-veil`` and it logs you in on first
 use, then starts the local server in the background. Individual steps (``serve``,
-``login``, ``stop``, ``status``, ``endpoint``, ``test``, ``update``, ``logout``)
-are available on their own too.
+``login``, ``stop``, ``status``, ``env``, ``models``, ``test``, ``update``,
+``logout``) are available on their own too.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from veil.session import AuthError, Session, login, login_manual
 @click.option("-v", "--verbose", is_flag=True, help="Enable debug logging.")
 @click.pass_context
 def main(ctx: click.Context, verbose: bool) -> None:
-    """OpenGradient Local — drop-in, self-verifying private inference for AI agents.
+    """OpenGradient Veil — drop-in, self-verifying private inference for AI agents.
 
     Run with no command to do everything: set up on first run, then start the server.
     """
@@ -157,11 +157,11 @@ def _start_server(config: ServerConfig, *, foreground: bool) -> None:
         # Already running — surface that clearly rather than erroring out.
         existing = running_pid()
         if existing:
-            click.secho(f"OpenGradient Local is already running (pid {existing}).", fg="yellow")
+            click.secho(f"OpenGradient Veil is already running (pid {existing}).", fg="yellow")
             click.echo("  Stop it with: og-veil stop")
             return
         raise click.ClickException(str(exc))
-    click.secho(f"✓ OpenGradient Local running in the background (pid {pid}).", fg="green")
+    click.secho(f"✓ OpenGradient Veil running in the background (pid {pid}).", fg="green")
     click.echo(f"  Base URL : {config.advertised_base_url()}")
     click.echo(f"  Logs     : {log_path()}")
     click.echo("  Stop     : og-veil stop")
@@ -179,17 +179,34 @@ def stop() -> None:
         click.secho(f"✓ Stopped background server (pid {pid}).", fg="green")
 
 
-@main.command()
-def endpoint() -> None:
-    """Print the env vars to point your agent at OpenGradient Local."""
+@main.command(name="env")
+def env_cmd() -> None:
+    """Print the env vars to point your agent at OpenGradient Veil."""
     from veil.daemon import running_pid
 
     config = ServerConfig.from_env()
-    click.echo("Point your agent at OpenGradient Local (one env var change):")
+    click.echo("Point your agent at OpenGradient Veil (one env var change):")
     click.secho(f"  export OPENAI_BASE_URL={config.advertised_base_url()}", bold=True)
     click.echo("  export OPENAI_API_KEY=og-veil   # ignored; your Chat session authenticates")
     if running_pid() is None:
         click.echo("\nThe server isn't running yet — start it with `og-veil`.")
+
+
+@main.command()
+def models() -> None:
+    """List the models available through OpenGradient Veil.
+
+    Derived from the SDK's canonical ``TEE_LLM`` enum — the same source the
+    local server uses for ``GET /v1/models`` — so it stays in sync with the
+    network as models are added or retired.
+    """
+    from opengradient import TEE_LLM
+
+    # Each enum value is ``provider/model``; agents send the bare model name.
+    names = sorted(m.value.split("/", 1)[1] for m in TEE_LLM)
+    click.echo("Models available through OpenGradient Veil:")
+    for name in names:
+        click.echo(f"  {name}")
 
 
 @main.command(name="login")
