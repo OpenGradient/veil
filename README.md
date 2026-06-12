@@ -77,7 +77,6 @@ the local OpenAI-compatible server.
 | `og-local` | Set up on first run, then serve (detached). The one command you need. |
 | `og-local stop` | Stop the background server. |
 | `og-local status` | Login + network config + whether the server is running. |
-| `og-local endpoint` | Re-print the env vars to point your agent at. |
 | `og-local update` | Update og-local to the latest version. |
 | `og-local login` | Authorize / re-authorize this device. |
 | `og-local setup` | Re-run the setup wizard. |
