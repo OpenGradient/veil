@@ -11,6 +11,7 @@ from __future__ import annotations
 from opengradient import RelayError, VerificationError, VerifiedChatResponse
 from opengradient.client.tee_verify import TeeProof
 
+from veil.pii import PiiSetupError
 from veil.server import create_app
 
 
@@ -31,8 +32,12 @@ class _StubGateway:
         self._result = result
         self._error = error
         self.active_tee = type("T", (), {"tee_id": "0xabc", "endpoint": "https://gw.example"})()
+        self.last_body = None
+        self.last_scrub = "unset"
 
-    def chat(self, body):
+    def chat(self, body, *, scrub=None):
+        self.last_body = body
+        self.last_scrub = scrub
         if self._error:
             raise self._error
         return self._result
@@ -131,6 +136,82 @@ def test_non_json_request_rejected():
     client = _client(_StubGateway())
     resp = client.post("/v1/chat/completions", data="not json", content_type="text/plain")
     assert resp.status_code == 415
+
+
+def _ok_result():
+    body = {
+        "id": "chatcmpl-1",
+        "object": "chat.completion",
+        "choices": [
+            {"index": 0, "message": {"role": "assistant", "content": "hi"}, "finish_reason": "stop"}
+        ],
+    }
+    return VerifiedChatResponse(body=body, content="hi", proof=_proof())
+
+
+def test_pii_scrub_defaults_to_none_override():
+    # No header / body field → no per-request override; gateway uses its default.
+    gw = _StubGateway(result=_ok_result())
+    _client(gw).post(
+        "/v1/chat/completions",
+        json={"model": "gpt-4.1", "messages": [{"role": "user", "content": "hi"}]},
+    )
+    assert gw.last_scrub is None
+
+
+def test_pii_scrub_body_field_overrides_and_is_stripped():
+    gw = _StubGateway(result=_ok_result())
+    _client(gw).post(
+        "/v1/chat/completions",
+        json={
+            "model": "gpt-4.1",
+            "messages": [{"role": "user", "content": "hi"}],
+            "pii_scrub": True,
+        },
+    )
+    assert gw.last_scrub is True
+    # The control field must not be forwarded to the TEE.
+    assert "pii_scrub" not in gw.last_body
+
+
+def test_pii_scrub_header_override():
+    gw = _StubGateway(result=_ok_result())
+    _client(gw).post(
+        "/v1/chat/completions",
+        json={"model": "gpt-4.1", "messages": [{"role": "user", "content": "hi"}]},
+        headers={"X-OpenGradient-PII-Scrub": "true"},
+    )
+    assert gw.last_scrub is True
+
+
+def test_pii_scrub_body_field_beats_header():
+    gw = _StubGateway(result=_ok_result())
+    _client(gw).post(
+        "/v1/chat/completions",
+        json={
+            "model": "gpt-4.1",
+            "messages": [{"role": "user", "content": "hi"}],
+            "pii_scrub": False,
+        },
+        headers={"X-OpenGradient-PII-Scrub": "true"},
+    )
+    assert gw.last_scrub is False
+
+
+def test_pii_setup_error_fails_closed():
+    # Scrubbing requested but the extra isn't installed → error, never a leak.
+    client = _client(_StubGateway(error=PiiSetupError("install the [pii] extra")))
+    resp = client.post(
+        "/v1/chat/completions",
+        json={
+            "model": "gpt-4.1",
+            "messages": [{"role": "user", "content": "x"}],
+            "pii_scrub": True,
+        },
+    )
+    assert resp.status_code == 503
+    assert "pii" in resp.get_json()["error"]["message"].lower()
+    assert "choices" not in resp.get_json()
 
 
 def test_models_and_health():
