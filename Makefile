@@ -13,12 +13,12 @@ publish:
 	uv publish
 
 check:
-	uv run ruff format --check og_local tests
-	uv run ruff check og_local tests
-	uv run mypy og_local
+	uv run ruff format --check veil tests
+	uv run ruff check veil tests
+	uv run mypy veil
 
 test:
 	uv run pytest -q
 
 serve:
-	uv run og-local serve
+	uv run og-veil serve

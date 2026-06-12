@@ -2,7 +2,7 @@
 
 **Drop-in confidential, self-verifying inference for AI agents.**
 
-Point any OpenAI SDK at `og-local` with one env var. Your prompts are encrypted
+Point any OpenAI SDK at `og-veil` with one env var. Your prompts are encrypted
 end-to-end to an attested TEE enclave, and every response is cryptographically
 verified before it reaches your code. You trust math — not us, the host, or the
 network. Your agent's code doesn't change.
@@ -22,14 +22,14 @@ network. Your agent's code doesn't change.
 uv tool install opengradient-local        # or: pipx install opengradient-local
 
 # run — logs you in (browser) the first time, then serves in the background
-og-local
+og-veil
 ```
 
 Point your agent at it:
 
 ```sh
 export OPENAI_BASE_URL=http://127.0.0.1:11434/v1 
-export OPENAI_API_KEY=og-local            # ignored; your Chat login authenticates
+export OPENAI_API_KEY=og-veil            # ignored; your Chat login authenticates
 ```
 
 ```python
@@ -47,15 +47,15 @@ That's it. Every response is verified before you see it — check the
 `X-OpenGradient-Verified: true` header (and the `opengradient_verification` block
 on the body). Streaming works too; it's verified before the first token replays.
 
-Useful commands: `og-local stop`, `og-local status`, `og-local endpoint` (re-prints
-the env vars), `og-local update`, `og-local logout`.
+Useful commands: `og-veil stop`, `og-veil status`, `og-veil endpoint` (re-prints
+the env vars), `og-veil update`, `og-veil logout`.
 
 ---
 
 ## How it works
 
 ```
-  your agent ──OpenAI SDK──▶ og-local ──HPKE-encrypted──▶ relay ──▶ TEE gateway
+  your agent ──OpenAI SDK──▶ og-veil ──HPKE-encrypted──▶ relay ──▶ TEE gateway
                                  ▲         (sees only ciphertext)     (runs the LLM,
                                  │                                     signs in-enclave)
                                  └──── verifies the enclave's signature, then replies
@@ -102,14 +102,14 @@ the local OpenAI-compatible server.
 
 | Command | What it does |
 |---------|--------------|
-| `og-local` | Set up on first run, then serve (detached). The one command you need. |
-| `og-local stop` | Stop the background server. |
-| `og-local status` | Login + network config + whether the server is running. |
-| `og-local update` | Update og-local to the latest version. |
-| `og-local login` | Authorize / re-authorize this device. |
-| `og-local setup` | Re-run the setup wizard. |
-| `og-local serve -f` | Run blocking in the foreground (for systemd/Docker). |
-| `og-local logout` | Remove the saved session. |
+| `og-veil` | Set up on first run, then serve (detached). The one command you need. |
+| `og-veil stop` | Stop the background server. |
+| `og-veil status` | Login + network config + whether the server is running. |
+| `og-veil update` | Update og-veil to the latest version. |
+| `og-veil login` | Authorize / re-authorize this device. |
+| `og-veil setup` | Re-run the setup wizard. |
+| `og-veil serve -f` | Run blocking in the foreground (for systemd/Docker). |
+| `og-veil logout` | Remove the saved session. |
 
 ## Lifecycle
 
@@ -117,21 +117,21 @@ the local OpenAI-compatible server.
   and frees your terminal. Logs: `~/.opengradient/local/server.log`. Use
   `--foreground` to block instead.
 - **Stays signed in.** The access token auto-refreshes. If you sign out in the
-  Chat app, the next request tells you to run `og-local login`.
+  Chat app, the next request tells you to run `og-veil login`.
 - **Survives a dead node.** If the chosen TEE goes offline, it reselects another
   from the registry and retries once.
 
 ## Configuration
 
-Session + prefs live in `~/.opengradient/local/` (override with `OG_LOCAL_HOME`).
+Session + prefs live in `~/.opengradient/local/` (override with `OG_VEIL_HOME`).
 
 | Env var | Flag | Default | Purpose |
 |---------|------|---------|---------|
-| `OG_LOCAL_PORT` | `--port` | `11434` | Bind port. |
-| `OG_LOCAL_HOST` | `--host` | `127.0.0.1` | Bind host. |
-| `OG_LOCAL_TEE_ID` | `--tee-id` | — | Pin a specific registry TEE. |
-| `OG_LOCAL_EXPECTED_PCR_HASH` | `--expected-pcr` | — | Refuse any TEE whose `pcrHash` differs. |
-| `OG_LOCAL_APP_URL` | `--app-url` | `https://chat.opengradient.ai` | Chat app origin for login. |
+| `OG_VEIL_PORT` | `--port` | `11434` | Bind port. |
+| `OG_VEIL_HOST` | `--host` | `127.0.0.1` | Bind host. |
+| `OG_VEIL_TEE_ID` | `--tee-id` | — | Pin a specific registry TEE. |
+| `OG_VEIL_EXPECTED_PCR_HASH` | `--expected-pcr` | — | Refuse any TEE whose `pcrHash` differs. |
+| `OG_VEIL_APP_URL` | `--app-url` | `https://chat.opengradient.ai` | Chat app origin for login. |
 
 ## Notes & limitations
 
@@ -149,7 +149,7 @@ Session + prefs live in `~/.opengradient/local/` (override with `OG_LOCAL_HOME`)
 git clone https://github.com/OpenGradient/local && cd local
 uv sync --all-groups
 uv run pytest
-uv run ruff check . && uv run mypy og_local
+uv run ruff check . && uv run mypy veil
 ```
 
 Protocol-level crypto is tested in the SDK repo against the real tee-gateway

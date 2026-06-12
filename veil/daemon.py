@@ -1,8 +1,8 @@
 """Run the local server detached, with a pidfile + log file so it can be stopped.
 
-By default ``og-local`` runs the interactive setup in the foreground, then
-re-launches ``og-local serve`` as a detached child whose output goes to a log
-file, recording the pid so a later ``og-local stop`` can terminate it. Pass
+By default ``og-veil`` runs the interactive setup in the foreground, then
+re-launches ``og-veil serve`` as a detached child whose output goes to a log
+file, recording the pid so a later ``og-veil stop`` can terminate it. Pass
 ``--foreground`` to block instead (e.g. under systemd or in a container).
 """
 
@@ -14,7 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from og_local.config import config_home
+from veil.config import config_home
 
 
 def pid_path() -> Path:
@@ -43,7 +43,7 @@ def running_pid() -> int | None:
 
 
 def start_background(serve_flags: list[str]) -> int:
-    """Launch ``og-local serve --skip-setup <flags>`` detached; return its pid.
+    """Launch ``og-veil serve --skip-setup <flags>`` detached; return its pid.
 
     Setup (login + host) must already be done in the foreground by the caller.
     """
@@ -52,7 +52,7 @@ def start_background(serve_flags: list[str]) -> int:
         raise RuntimeError(f"a background server is already running (pid {existing})")
 
     log = open(log_path(), "a", buffering=1)  # noqa: SIM115 — handed to the child
-    cmd = [sys.executable, "-m", "og_local", "serve", "--skip-setup", *serve_flags]
+    cmd = [sys.executable, "-m", "veil", "serve", "--skip-setup", *serve_flags]
     proc = subprocess.Popen(
         cmd,
         stdout=log,

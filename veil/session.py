@@ -26,7 +26,7 @@ from urllib.parse import urlencode
 
 import requests
 
-from og_local.config import session_path
+from veil.config import session_path
 
 BUNDLE_TYPE = "opengradient-cli-auth"
 
@@ -72,7 +72,7 @@ class Session:
     def load(cls) -> "Session":
         path = session_path()
         if not path.exists():
-            raise AuthError("not logged in — run `og-local login` first")
+            raise AuthError("not logged in — run `og-veil login` first")
         try:
             return cls(json.loads(path.read_text()))
         except (OSError, json.JSONDecodeError) as exc:
@@ -100,7 +100,7 @@ class Session:
             self._refresh()
         token = self._data.get("access_token")
         if not token:
-            raise AuthError("session has no access token — run `og-local login` to sign in again")
+            raise AuthError("session has no access token — run `og-veil login` to sign in again")
         return token
 
     def _is_expired(self) -> bool:
@@ -112,7 +112,7 @@ class Session:
     def _refresh(self) -> None:
         refresh_token = self._data.get("refresh_token")
         if not refresh_token:
-            raise AuthError("session expired — run `og-local login` to sign in again")
+            raise AuthError("session expired — run `og-veil login` to sign in again")
         url = f"{self.config.supabase_url}/auth/v1/token?grant_type=refresh_token"
         try:
             resp = requests.post(
@@ -135,7 +135,7 @@ class Session:
         if resp.status_code in (400, 401, 403):
             raise AuthError(
                 "your OpenGradient Chat session was signed out or expired — "
-                "run `og-local login` to sign in again"
+                "run `og-veil login` to sign in again"
             )
         try:
             resp.raise_for_status()
@@ -218,7 +218,7 @@ def login(app_url: str, *, open_browser: bool = True, timeout: float = 300.0) ->
         print(f"Opening browser to authorize this device:\n  {auth_url}\n")
         if open_browser:
             webbrowser.open(auth_url)
-        print("Waiting for authorization… (Ctrl-C to cancel; or use `og-local login --manual`)")
+        print("Waiting for authorization… (Ctrl-C to cancel; or use `og-veil login --manual`)")
         if not done.wait(timeout=timeout):
             raise AuthError("timed out waiting for browser authorization")
     finally:

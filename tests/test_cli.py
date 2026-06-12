@@ -6,16 +6,16 @@ from unittest import mock
 
 from click.testing import CliRunner
 
-from og_local import cli
-from og_local.session import AuthError
+from veil import cli
+from veil.session import AuthError
 
 
 def test_bare_command_logs_in_then_starts_in_background():
     with (
         mock.patch.object(cli.Session, "load", side_effect=AuthError("no session")),
         mock.patch.object(cli, "login", return_value=mock.MagicMock(user_email="me@x")) as login,
-        mock.patch("og_local.daemon.start_background", return_value=4321) as start,
-        mock.patch("og_local.server.serve") as run_server,
+        mock.patch("veil.daemon.start_background", return_value=4321) as start,
+        mock.patch("veil.server.serve") as run_server,
     ):
         result = CliRunner().invoke(cli.main, [])
     assert login.called, "should auto-login when no session exists"
@@ -28,7 +28,7 @@ def test_serve_reuses_existing_session_and_backgrounds():
     with (
         mock.patch.object(cli.Session, "load", return_value=mock.MagicMock()),
         mock.patch.object(cli, "login") as login,
-        mock.patch("og_local.daemon.start_background", return_value=4321) as start,
+        mock.patch("veil.daemon.start_background", return_value=4321) as start,
     ):
         result = CliRunner().invoke(cli.main, ["serve"])
     assert not login.called, "should not re-login when a session exists"
@@ -39,8 +39,8 @@ def test_serve_reuses_existing_session_and_backgrounds():
 def test_serve_foreground_blocks_instead_of_detaching():
     with (
         mock.patch.object(cli.Session, "load", return_value=mock.MagicMock()),
-        mock.patch("og_local.daemon.start_background") as start,
-        mock.patch("og_local.server.serve") as run_server,
+        mock.patch("veil.daemon.start_background") as start,
+        mock.patch("veil.server.serve") as run_server,
     ):
         result = CliRunner().invoke(cli.main, ["serve", "--foreground"])
     assert run_server.called, "--foreground should run the blocking server"
@@ -51,7 +51,7 @@ def test_serve_foreground_blocks_instead_of_detaching():
 def test_setup_with_yes_starts_background():
     with (
         mock.patch.object(cli.Session, "load", return_value=mock.MagicMock()),
-        mock.patch("og_local.daemon.start_background", return_value=4321) as start,
+        mock.patch("veil.daemon.start_background", return_value=4321) as start,
     ):
         result = CliRunner().invoke(cli.main, ["setup", "--yes"])
     assert start.called
@@ -59,7 +59,7 @@ def test_setup_with_yes_starts_background():
 
 
 def test_endpoint_prints_env_vars():
-    with mock.patch("og_local.daemon.running_pid", return_value=4321):
+    with mock.patch("veil.daemon.running_pid", return_value=4321):
         result = CliRunner().invoke(cli.main, ["endpoint"])
     assert "OPENAI_BASE_URL=http://127.0.0.1:11434/v1" in result.output
     assert result.exit_code == 0

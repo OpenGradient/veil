@@ -1,6 +1,6 @@
-"""``og-local`` command-line interface.
+"""``og-veil`` command-line interface.
 
-The common path is a single command: run ``og-local`` and it logs you in on first
+The common path is a single command: run ``og-veil`` and it logs you in on first
 use, then starts the local server in the background. Individual steps (``serve``,
 ``login``, ``stop``, ``status``, ``endpoint``, ``update``, ``logout``) are
 available on their own too.
@@ -13,8 +13,8 @@ import sys
 
 import click
 
-from og_local.config import DEFAULT_APP_URL, ServerConfig
-from og_local.session import AuthError, Session, login, login_manual
+from veil.config import DEFAULT_APP_URL, ServerConfig
+from veil.session import AuthError, Session, login, login_manual
 
 
 @click.group(invoke_without_command=True)
@@ -75,8 +75,8 @@ def setup(app_url: str, no_browser: bool, yes: bool) -> None:
 
 
 @main.command()
-@click.option("--host", default=None, help="Bind host (default 127.0.0.1 / OG_LOCAL_HOST).")
-@click.option("--port", type=int, default=None, help="Bind port (default 11434 / OG_LOCAL_PORT).")
+@click.option("--host", default=None, help="Bind host (default 127.0.0.1 / OG_VEIL_HOST).")
+@click.option("--port", type=int, default=None, help="Bind port (default 11434 / OG_VEIL_PORT).")
 @click.option("--tee-id", default=None, help="Pin a specific tee_id from the registry.")
 @click.option(
     "--expected-pcr", default=None, help="Refuse any TEE whose registry pcrHash differs from this."
@@ -144,12 +144,12 @@ def _config_flags(config: ServerConfig) -> list[str]:
 def _start_server(config: ServerConfig, *, foreground: bool) -> None:
     """Run the server: detached in the background by default, or blocking with foreground=True."""
     if foreground:
-        from og_local.server import serve as run_server
+        from veil.server import serve as run_server
 
         run_server(config)
         return
 
-    from og_local.daemon import log_path, running_pid, start_background
+    from veil.daemon import log_path, running_pid, start_background
 
     try:
         pid = start_background(_config_flags(config))
@@ -158,19 +158,19 @@ def _start_server(config: ServerConfig, *, foreground: bool) -> None:
         existing = running_pid()
         if existing:
             click.secho(f"OpenGradient Local is already running (pid {existing}).", fg="yellow")
-            click.echo("  Stop it with: og-local stop")
+            click.echo("  Stop it with: og-veil stop")
             return
         raise click.ClickException(str(exc))
     click.secho(f"✓ OpenGradient Local running in the background (pid {pid}).", fg="green")
     click.echo(f"  Base URL : {config.advertised_base_url()}")
     click.echo(f"  Logs     : {log_path()}")
-    click.echo("  Stop     : og-local stop")
+    click.echo("  Stop     : og-veil stop")
 
 
 @main.command()
 def stop() -> None:
     """Stop the background server."""
-    from og_local.daemon import stop_background
+    from veil.daemon import stop_background
 
     pid = stop_background()
     if pid is None:
@@ -182,14 +182,14 @@ def stop() -> None:
 @main.command()
 def endpoint() -> None:
     """Print the env vars to point your agent at OpenGradient Local."""
-    from og_local.daemon import running_pid
+    from veil.daemon import running_pid
 
     config = ServerConfig.from_env()
     click.echo("Point your agent at OpenGradient Local (one env var change):")
     click.secho(f"  export OPENAI_BASE_URL={config.advertised_base_url()}", bold=True)
-    click.echo("  export OPENAI_API_KEY=og-local   # ignored; your Chat session authenticates")
+    click.echo("  export OPENAI_API_KEY=og-veil   # ignored; your Chat session authenticates")
     if running_pid() is None:
-        click.echo("\nThe server isn't running yet — start it with `og-local`.")
+        click.echo("\nThe server isn't running yet — start it with `og-veil`.")
 
 
 @main.command(name="login")
@@ -220,7 +220,7 @@ def status() -> None:
         session = Session.load()
     except AuthError as exc:
         raise click.ClickException(str(exc))
-    from og_local.daemon import running_pid
+    from veil.daemon import running_pid
 
     cfg = session.config
     click.echo(f"Signed in as : {session.user_email or 'unknown'}")
@@ -248,7 +248,7 @@ def _update_command() -> list[str]:
 
 @main.command()
 def update() -> None:
-    """Update og-local to the latest version from PyPI."""
+    """Update og-veil to the latest version from PyPI."""
     import subprocess
 
     cmd = _update_command()
@@ -259,15 +259,13 @@ def update() -> None:
         raise click.ClickException(
             f"update failed: {exc}\nTry manually, e.g.:  uv tool upgrade opengradient-local"
         )
-    click.secho(
-        "✓ Updated. Restart the server to pick it up:  og-local stop && og-local", fg="green"
-    )
+    click.secho("✓ Updated. Restart the server to pick it up:  og-veil stop && og-veil", fg="green")
 
 
 @main.command()
 def logout() -> None:
     """Remove the saved session."""
-    from og_local.config import session_path
+    from veil.config import session_path
 
     path = session_path()
     if path.exists():

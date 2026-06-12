@@ -17,8 +17,8 @@ import requests
 from opengradient import OhttpRelayClient, TEERegistry, VerifiedChatResponse
 from opengradient.client.tee_registry import TEE_TYPE_LLM_PROXY, TEEEndpoint
 
-from og_local.config import OHTTP_RELAY_PATH, ServerConfig
-from og_local.session import Session
+from veil.config import OHTTP_RELAY_PATH, ServerConfig
+from veil.session import Session
 
 logger = logging.getLogger(__name__)
 
