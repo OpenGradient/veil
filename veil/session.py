@@ -26,7 +26,7 @@ from urllib.parse import urlencode
 
 import requests
 
-from veil.config import session_path
+from veil.config import DEFAULT_APP_NAME, session_path
 
 BUNDLE_TYPE = "opengradient-cli-auth"
 
@@ -157,7 +157,13 @@ class Session:
 # ---------------------------------------------------------------------------
 
 
-def login(app_url: str, *, open_browser: bool = True, timeout: float = 300.0) -> Session:
+def login(
+    app_url: str,
+    *,
+    app_name: str = DEFAULT_APP_NAME,
+    open_browser: bool = True,
+    timeout: float = 300.0,
+) -> Session:
     """Run the browser CLI-auth flow and persist the resulting session.
 
     Spins up a loopback listener, opens ``<app_url>/cli-auth?redirect_uri=...``,
@@ -165,6 +171,7 @@ def login(app_url: str, *, open_browser: bool = True, timeout: float = 300.0) ->
 
     Args:
         app_url: The Chat app web origin (e.g. ``https://chat.opengradient.ai``).
+        app_name: Name shown for this CLI on the auth page ("Connect the <name> CLI").
         open_browser: Whether to open the system browser automatically.
         timeout: How long to wait for the callback, in seconds.
 
@@ -210,7 +217,8 @@ def login(app_url: str, *, open_browser: bool = True, timeout: float = 300.0) ->
     server = HTTPServer(("127.0.0.1", 0), Handler)
     port = server.server_address[1]
     redirect_uri = f"http://127.0.0.1:{port}"
-    auth_url = f"{app_url.rstrip('/')}/cli-auth?{urlencode({'redirect_uri': redirect_uri})}"
+    query = urlencode({"redirect_uri": redirect_uri, "app_name": app_name})
+    auth_url = f"{app_url.rstrip('/')}/cli-auth?{query}"
 
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
