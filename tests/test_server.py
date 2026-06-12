@@ -11,7 +11,7 @@ from __future__ import annotations
 from opengradient import RelayError, VerificationError, VerifiedChatResponse
 from opengradient.client.tee_verify import TeeProof
 
-from og_local.server import create_app
+from veil.server import create_app
 
 
 def _proof():

@@ -19,9 +19,9 @@ from flask import Flask, Response, jsonify, request
 from opengradient import RelayError, VerificationError
 from opengradient.client.tee_verify import UnsupportedRequestError
 
-from og_local.config import ServerConfig
-from og_local.gateway import Gateway, GatewayError
-from og_local.session import AuthError, Session
+from veil.config import ServerConfig
+from veil.gateway import Gateway, GatewayError
+from veil.session import AuthError, Session
 
 logger = logging.getLogger(__name__)
 

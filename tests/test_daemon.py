@@ -7,12 +7,12 @@ from unittest import mock
 import pytest
 from click.testing import CliRunner
 
-from og_local import cli, daemon
+from veil import cli, daemon
 
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    monkeypatch.setenv("OG_LOCAL_HOME", str(tmp_path))
+    monkeypatch.setenv("VEIL_HOME", str(tmp_path))
     return tmp_path
 
 
@@ -50,8 +50,8 @@ def test_start_refuses_when_already_running(home):
 def test_serve_spawns_detached_by_default(home):
     with (
         mock.patch.object(cli.Session, "load", return_value=mock.MagicMock()),
-        mock.patch("og_local.daemon.start_background", return_value=4321) as start,
-        mock.patch("og_local.server.serve") as run_server,
+        mock.patch("veil.daemon.start_background", return_value=4321) as start,
+        mock.patch("veil.server.serve") as run_server,
     ):
         result = CliRunner().invoke(cli.main, ["serve"])
     assert start.called, "should launch the detached server by default"
@@ -60,7 +60,7 @@ def test_serve_spawns_detached_by_default(home):
 
 
 def test_stop_command(home):
-    with mock.patch("og_local.daemon.stop_background", return_value=4321):
+    with mock.patch("veil.daemon.stop_background", return_value=4321):
         result = CliRunner().invoke(cli.main, ["stop"])
     assert "4321" in result.output
     assert result.exit_code == 0

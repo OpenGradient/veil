@@ -26,7 +26,7 @@ from urllib.parse import urlencode
 
 import requests
 
-from og_local.config import session_path
+from veil.config import session_path
 
 BUNDLE_TYPE = "opengradient-cli-auth"
 

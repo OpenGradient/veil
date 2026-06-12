@@ -123,15 +123,15 @@ the local OpenAI-compatible server.
 
 ## Configuration
 
-Session + prefs live in `~/.opengradient/local/` (override with `OG_LOCAL_HOME`).
+Session + prefs live in `~/.opengradient/local/` (override with `VEIL_HOME`).
 
 | Env var | Flag | Default | Purpose |
 |---------|------|---------|---------|
-| `OG_LOCAL_PORT` | `--port` | `11434` | Bind port. |
-| `OG_LOCAL_HOST` | `--host` | `127.0.0.1` | Bind host. |
-| `OG_LOCAL_TEE_ID` | `--tee-id` | — | Pin a specific registry TEE. |
-| `OG_LOCAL_EXPECTED_PCR_HASH` | `--expected-pcr` | — | Refuse any TEE whose `pcrHash` differs. |
-| `OG_LOCAL_APP_URL` | `--app-url` | `https://chat.opengradient.ai` | Chat app origin for login. |
+| `VEIL_PORT` | `--port` | `11434` | Bind port. |
+| `VEIL_HOST` | `--host` | `127.0.0.1` | Bind host. |
+| `VEIL_TEE_ID` | `--tee-id` | — | Pin a specific registry TEE. |
+| `VEIL_EXPECTED_PCR_HASH` | `--expected-pcr` | — | Refuse any TEE whose `pcrHash` differs. |
+| `VEIL_APP_URL` | `--app-url` | `https://chat.opengradient.ai` | Chat app origin for login. |
 
 ## Notes & limitations
 
@@ -149,7 +149,7 @@ Session + prefs live in `~/.opengradient/local/` (override with `OG_LOCAL_HOME`)
 git clone https://github.com/OpenGradient/local && cd local
 uv sync --all-groups
 uv run pytest
-uv run ruff check . && uv run mypy og_local
+uv run ruff check . && uv run mypy veil
 ```
 
 Protocol-level crypto is tested in the SDK repo against the real tee-gateway

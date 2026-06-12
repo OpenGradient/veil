@@ -14,7 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from og_local.config import config_home
+from veil.config import config_home
 
 
 def pid_path() -> Path:
@@ -52,7 +52,7 @@ def start_background(serve_flags: list[str]) -> int:
         raise RuntimeError(f"a background server is already running (pid {existing})")
 
     log = open(log_path(), "a", buffering=1)  # noqa: SIM115 — handed to the child
-    cmd = [sys.executable, "-m", "og_local", "serve", "--skip-setup", *serve_flags]
+    cmd = [sys.executable, "-m", "veil", "serve", "--skip-setup", *serve_flags]
     proc = subprocess.Popen(
         cmd,
         stdout=log,

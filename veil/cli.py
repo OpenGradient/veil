@@ -13,8 +13,8 @@ import sys
 
 import click
 
-from og_local.config import DEFAULT_APP_URL, ServerConfig
-from og_local.session import AuthError, Session, login, login_manual
+from veil.config import DEFAULT_APP_URL, ServerConfig
+from veil.session import AuthError, Session, login, login_manual
 
 
 @click.group(invoke_without_command=True)
@@ -75,8 +75,8 @@ def setup(app_url: str, no_browser: bool, yes: bool) -> None:
 
 
 @main.command()
-@click.option("--host", default=None, help="Bind host (default 127.0.0.1 / OG_LOCAL_HOST).")
-@click.option("--port", type=int, default=None, help="Bind port (default 11434 / OG_LOCAL_PORT).")
+@click.option("--host", default=None, help="Bind host (default 127.0.0.1 / VEIL_HOST).")
+@click.option("--port", type=int, default=None, help="Bind port (default 11434 / VEIL_PORT).")
 @click.option("--tee-id", default=None, help="Pin a specific tee_id from the registry.")
 @click.option(
     "--expected-pcr", default=None, help="Refuse any TEE whose registry pcrHash differs from this."
@@ -144,12 +144,12 @@ def _config_flags(config: ServerConfig) -> list[str]:
 def _start_server(config: ServerConfig, *, foreground: bool) -> None:
     """Run the server: detached in the background by default, or blocking with foreground=True."""
     if foreground:
-        from og_local.server import serve as run_server
+        from veil.server import serve as run_server
 
         run_server(config)
         return
 
-    from og_local.daemon import log_path, running_pid, start_background
+    from veil.daemon import log_path, running_pid, start_background
 
     try:
         pid = start_background(_config_flags(config))
@@ -170,7 +170,7 @@ def _start_server(config: ServerConfig, *, foreground: bool) -> None:
 @main.command()
 def stop() -> None:
     """Stop the background server."""
-    from og_local.daemon import stop_background
+    from veil.daemon import stop_background
 
     pid = stop_background()
     if pid is None:
@@ -182,7 +182,7 @@ def stop() -> None:
 @main.command()
 def endpoint() -> None:
     """Print the env vars to point your agent at OpenGradient Local."""
-    from og_local.daemon import running_pid
+    from veil.daemon import running_pid
 
     config = ServerConfig.from_env()
     click.echo("Point your agent at OpenGradient Local (one env var change):")
@@ -220,7 +220,7 @@ def status() -> None:
         session = Session.load()
     except AuthError as exc:
         raise click.ClickException(str(exc))
-    from og_local.daemon import running_pid
+    from veil.daemon import running_pid
 
     cfg = session.config
     click.echo(f"Signed in as : {session.user_email or 'unknown'}")
@@ -267,7 +267,7 @@ def update() -> None:
 @main.command()
 def logout() -> None:
     """Remove the saved session."""
-    from og_local.config import session_path
+    from veil.config import session_path
 
     path = session_path()
     if path.exists():
