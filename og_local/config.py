@@ -21,11 +21,6 @@ OHTTP_RELAY_PATH = "/api/v1/chat/ohttp"
 # OG_LOCAL_APP_URL or `og-local login --app-url ...`.
 DEFAULT_APP_URL = os.getenv("OG_LOCAL_APP_URL", "https://chat.opengradient.ai")
 
-# Friendly local hostname agents can point at instead of a bare loopback IP.
-# `og-local setup-host` maps it to 127.0.0.1 in the system hosts file; the server
-# still binds loopback. Override with OG_LOCAL_HOSTNAME.
-FRIENDLY_HOST = os.getenv("OG_LOCAL_HOSTNAME", "opengradient.inference")
-
 
 def config_home() -> Path:
     """Directory holding the saved login session.
@@ -41,30 +36,6 @@ def config_home() -> Path:
 
 def session_path() -> Path:
     return config_home() / "session.json"
-
-
-def prefs_path() -> Path:
-    return config_home() / "prefs.json"
-
-
-def load_prefs() -> dict:
-    """Load saved setup preferences (e.g. whether the friendly hostname is wanted)."""
-    import json
-
-    path = prefs_path()
-    if not path.exists():
-        return {}
-    try:
-        data = json.loads(path.read_text())
-        return data if isinstance(data, dict) else {}
-    except (OSError, json.JSONDecodeError):
-        return {}
-
-
-def save_prefs(prefs: dict) -> None:
-    import json
-
-    prefs_path().write_text(json.dumps(prefs, indent=2))
 
 
 @dataclass
@@ -96,18 +67,8 @@ class ServerConfig:
         )
 
     def advertised_base_url(self) -> str:
-        """The ``/v1`` base URL to tell agents to use.
-
-        Prefers the friendly ``opengradient.inference`` hostname when it resolves
-        to loopback (set up via ``og-local setup-host``); otherwise falls back to
-        the bind address. The port is omitted from the URL only when it's 80.
-        """
-        from og_local.hosts import resolves_to_loopback
-
-        host = FRIENDLY_HOST if resolves_to_loopback(FRIENDLY_HOST) else self.host
-        if self.port == 80:
-            return f"http://{host}/v1"
-        return f"http://{host}:{self.port}/v1"
+        """The ``/v1`` base URL to tell agents to use."""
+        return f"http://{self.host}:{self.port}/v1"
 
 
 def _norm_hex(value: str | None) -> str | None:

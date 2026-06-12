@@ -39,9 +39,8 @@ That's it. Every response is verified before you see it — check the
 `X-OpenGradient-Verified: true` header (and the `opengradient_verification` block
 on the body). Streaming works too; it's verified before the first token replays.
 
-Useful commands: `og-local stop`, `og-local status`, `og-local endpoint` (prints
-the env vars), `og-local logout`. Run `sudo og-local endpoint` once if you'd like
-a prettier `http://opengradient.inference:11434/v1` base URL.
+Useful commands: `og-local stop`, `og-local status`, `og-local endpoint` (re-prints
+the env vars), `og-local update`, `og-local logout`.
 
 ---
 
@@ -78,7 +77,7 @@ the local OpenAI-compatible server.
 | `og-local` | Set up on first run, then serve (detached). The one command you need. |
 | `og-local stop` | Stop the background server. |
 | `og-local status` | Login + network config + whether the server is running. |
-| `og-local endpoint` | Print the agent env vars (`sudo` to also map `opengradient.inference`). |
+| `og-local endpoint` | Re-print the env vars to point your agent at. |
 | `og-local update` | Update og-local to the latest version. |
 | `og-local login` | Authorize / re-authorize this device. |
 | `og-local setup` | Re-run the setup wizard. |

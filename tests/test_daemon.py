@@ -50,7 +50,6 @@ def test_start_refuses_when_already_running(home):
 def test_serve_spawns_detached_by_default(home):
     with (
         mock.patch.object(cli.Session, "load", return_value=mock.MagicMock()),
-        mock.patch("og_local.hosts.entry_present", return_value=True),
         mock.patch("og_local.daemon.start_background", return_value=4321) as start,
         mock.patch("og_local.server.serve") as run_server,
     ):

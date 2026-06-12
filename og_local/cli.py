@@ -1,9 +1,8 @@
 """``og-local`` command-line interface.
 
-The common path is a single command: run ``og-local`` and it walks first-time
-users through setup (log in, optionally map the friendly ``opengradient.inference``
-hostname), remembers the choices, then starts the local server. On later runs it
-just serves. Individual steps (``setup``, ``login``, ``status``, ``logout``) are
+The common path is a single command: run ``og-local`` and it logs you in on first
+use, then starts the local server in the background. Individual steps (``serve``,
+``login``, ``stop``, ``status``, ``endpoint``, ``update``, ``logout``) are
 available on their own too.
 """
 
@@ -14,7 +13,7 @@ import sys
 
 import click
 
-from og_local.config import DEFAULT_APP_URL, FRIENDLY_HOST, ServerConfig
+from og_local.config import DEFAULT_APP_URL, ServerConfig
 from og_local.session import AuthError, Session, login, login_manual
 
 
@@ -35,7 +34,7 @@ def main(ctx: click.Context, verbose: bool) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Setup wizard
+# Setup
 # ---------------------------------------------------------------------------
 
 
@@ -44,62 +43,10 @@ def _ensure_session(app_url: str, open_browser: bool) -> Session:
     try:
         return Session.load()
     except AuthError:
-        click.secho(
-            "Step 1/2 — authorize this device with your OpenGradient Chat account.", fg="cyan"
-        )
+        click.secho("Authorizing this device with your OpenGradient Chat account…", fg="cyan")
         session = login(app_url, open_browser=open_browser)
         click.secho(f"✓ Logged in as {session.user_email or 'unknown'}", fg="green")
         return session
-
-
-def _maybe_setup_friendly_host(*, interactive: bool, assume_yes: bool, force: bool) -> None:
-    """Offer to map ``opengradient.inference`` -> 127.0.0.1, remembering the choice.
-
-    Skips silently when the mapping already exists or the user previously declined;
-    only prompts interactively (or auto-accepts with ``assume_yes``). ``force``
-    re-asks even if a preference was saved (used by ``og-local setup``).
-    """
-    from og_local.config import load_prefs, save_prefs
-    from og_local.hosts import add_entry, entry_present
-
-    if entry_present(FRIENDLY_HOST):
-        return
-
-    prefs = load_prefs()
-    if "friendly_host" in prefs and not force:
-        if not prefs["friendly_host"]:
-            return  # previously declined
-        want = True
-    elif assume_yes:
-        want = True
-        prefs["friendly_host"] = True
-        save_prefs(prefs)
-    elif interactive:
-        click.secho("Step 2/2 — friendly local URL (optional).", fg="cyan")
-        want = click.confirm(
-            f"  Map http://{FRIENDLY_HOST} -> 127.0.0.1 so agents can use a clean base URL?\n"
-            "  (edits your system hosts file; you may be prompted for sudo)",
-            default=True,
-        )
-        prefs["friendly_host"] = want
-        save_prefs(prefs)
-    else:
-        return  # non-interactive and undecided — don't prompt or persist
-
-    if want:
-        added, message = add_entry(FRIENDLY_HOST)
-        click.secho(("✓ " if added else "") + message, fg="green" if added else "yellow")
-        if not added:
-            click.echo("  Or apply it later with:  ", nl=False)
-            click.secho("sudo og-local endpoint", fg="cyan")
-
-
-def _run_setup(
-    *, app_url: str, open_browser: bool, interactive: bool, assume_yes: bool, force: bool
-) -> Session:
-    session = _ensure_session(app_url, open_browser)
-    _maybe_setup_friendly_host(interactive=interactive, assume_yes=assume_yes, force=force)
-    return session
 
 
 # ---------------------------------------------------------------------------
@@ -114,15 +61,9 @@ def _run_setup(
 )
 @click.option("-y", "--yes", is_flag=True, help="Accept defaults (non-interactive).")
 def setup(app_url: str, no_browser: bool, yes: bool) -> None:
-    """Interactive setup wizard: log in and choose your friendly local URL."""
+    """Log in, then optionally start the server."""
     try:
-        _run_setup(
-            app_url=app_url,
-            open_browser=not no_browser,
-            interactive=True,
-            assume_yes=yes,
-            force=True,
-        )
+        _ensure_session(app_url, open_browser=not no_browser)
     except AuthError as exc:
         raise click.ClickException(str(exc))
 
@@ -146,7 +87,6 @@ def setup(app_url: str, no_browser: bool, yes: bool) -> None:
 @click.option(
     "--no-browser", is_flag=True, help="During login, print the URL instead of opening a browser."
 )
-@click.option("-y", "--yes", is_flag=True, help="Accept setup defaults (non-interactive).")
 @click.option(
     "-f",
     "--foreground",
@@ -157,7 +97,7 @@ def setup(app_url: str, no_browser: bool, yes: bool) -> None:
     "--skip-setup",
     is_flag=True,
     hidden=True,
-    help="Internal: skip the setup wizard (used by the detached child).",
+    help="Internal: skip login (used by the detached child).",
 )
 def serve(
     host: str | None,
@@ -166,20 +106,13 @@ def serve(
     expected_pcr: str | None,
     app_url: str,
     no_browser: bool,
-    yes: bool,
     foreground: bool,
     skip_setup: bool,
 ) -> None:
-    """Set up on first run, then run the local server (detached by default)."""
+    """Log in on first run, then run the local server (detached by default)."""
     if not skip_setup:
         try:
-            _run_setup(
-                app_url=app_url,
-                open_browser=not no_browser,
-                interactive=sys.stdin.isatty(),
-                assume_yes=yes,
-                force=False,
-            )
+            _ensure_session(app_url, open_browser=not no_browser)
         except AuthError as exc:
             raise click.ClickException(str(exc))
 
@@ -248,30 +181,13 @@ def stop() -> None:
 
 @main.command()
 def endpoint() -> None:
-    """Print the agent endpoint, and map opengradient.inference (run with sudo to apply)."""
+    """Print the env vars to point your agent at OpenGradient Local."""
     from og_local.daemon import running_pid
-    from og_local.hosts import add_entry, entry_present
 
     config = ServerConfig.from_env()
-
-    # Friendly hostname: set it up if we can (e.g. invoked via `sudo`), else guide.
-    if entry_present(FRIENDLY_HOST):
-        click.secho(f"✓ {FRIENDLY_HOST} is mapped to your local server.", fg="green")
-    else:
-        added, message = add_entry(FRIENDLY_HOST)
-        if added:
-            click.secho(f"✓ {message}", fg="green")
-        else:
-            click.secho(message, fg="yellow")
-            click.echo("  Tip: re-run with elevated privileges to apply it automatically:")
-            click.secho("       sudo og-local endpoint", fg="cyan")
-
-    click.echo("\nPoint your agent at OpenGradient Local (one env var change):")
+    click.echo("Point your agent at OpenGradient Local (one env var change):")
     click.secho(f"  export OPENAI_BASE_URL={config.advertised_base_url()}", bold=True)
     click.echo("  export OPENAI_API_KEY=og-local   # ignored; your Chat session authenticates")
-    if not entry_present(FRIENDLY_HOST):
-        click.echo(f"  # (or http://127.0.0.1:{config.port}/v1)")
-
     if running_pid() is None:
         click.echo("\nThe server isn't running yet — start it with `og-local`.")
 
