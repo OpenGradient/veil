@@ -1,6 +1,6 @@
-"""``og-local`` command-line interface.
+"""``veil`` command-line interface.
 
-The common path is a single command: run ``og-local`` and it logs you in on first
+The common path is a single command: run ``veil`` and it logs you in on first
 use, then starts the local server in the background. Individual steps (``serve``,
 ``login``, ``stop``, ``status``, ``endpoint``, ``update``, ``logout``) are
 available on their own too.
@@ -158,13 +158,13 @@ def _start_server(config: ServerConfig, *, foreground: bool) -> None:
         existing = running_pid()
         if existing:
             click.secho(f"OpenGradient Local is already running (pid {existing}).", fg="yellow")
-            click.echo("  Stop it with: og-local stop")
+            click.echo("  Stop it with: veil stop")
             return
         raise click.ClickException(str(exc))
     click.secho(f"✓ OpenGradient Local running in the background (pid {pid}).", fg="green")
     click.echo(f"  Base URL : {config.advertised_base_url()}")
     click.echo(f"  Logs     : {log_path()}")
-    click.echo("  Stop     : og-local stop")
+    click.echo("  Stop     : veil stop")
 
 
 @main.command()
@@ -187,9 +187,9 @@ def endpoint() -> None:
     config = ServerConfig.from_env()
     click.echo("Point your agent at OpenGradient Local (one env var change):")
     click.secho(f"  export OPENAI_BASE_URL={config.advertised_base_url()}", bold=True)
-    click.echo("  export OPENAI_API_KEY=og-local   # ignored; your Chat session authenticates")
+    click.echo("  export OPENAI_API_KEY=veil   # ignored; your Chat session authenticates")
     if running_pid() is None:
-        click.echo("\nThe server isn't running yet — start it with `og-local`.")
+        click.echo("\nThe server isn't running yet — start it with `veil`.")
 
 
 @main.command(name="login")
@@ -248,7 +248,7 @@ def _update_command() -> list[str]:
 
 @main.command()
 def update() -> None:
-    """Update og-local to the latest version from PyPI."""
+    """Update veil to the latest version from PyPI."""
     import subprocess
 
     cmd = _update_command()
@@ -260,7 +260,7 @@ def update() -> None:
             f"update failed: {exc}\nTry manually, e.g.:  uv tool upgrade opengradient-local"
         )
     click.secho(
-        "✓ Updated. Restart the server to pick it up:  og-local stop && og-local", fg="green"
+        "✓ Updated. Restart the server to pick it up:  veil stop && veil", fg="green"
     )
 
 

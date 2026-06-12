@@ -18,7 +18,7 @@ from pathlib import Path
 OHTTP_RELAY_PATH = "/api/v1/chat/ohttp"
 
 # Default chat-app web origin used to start the browser login flow. Override with
-# OG_LOCAL_APP_URL or `og-local login --app-url ...`.
+# OG_LOCAL_APP_URL or `veil login --app-url ...`.
 DEFAULT_APP_URL = os.getenv("OG_LOCAL_APP_URL", "https://chat.opengradient.ai")
 
 
