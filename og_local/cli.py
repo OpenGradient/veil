@@ -317,6 +317,37 @@ def status() -> None:
     click.echo(f"Background   : running (pid {pid})" if pid else "Background   : not running")
 
 
+def _update_command() -> list[str]:
+    """Pick the right upgrade command based on how this CLI was installed."""
+    import shutil
+
+    pkg = "opengradient-local"
+    location = (__file__ or "").replace("\\", "/")
+    if "/uv/tools/" in location and shutil.which("uv"):
+        return ["uv", "tool", "upgrade", pkg]
+    if "/pipx/" in location and shutil.which("pipx"):
+        return ["pipx", "upgrade", pkg]
+    return [sys.executable, "-m", "pip", "install", "--upgrade", pkg]
+
+
+@main.command()
+def update() -> None:
+    """Update og-local to the latest version from PyPI."""
+    import subprocess
+
+    cmd = _update_command()
+    click.echo(f"Updating via: {' '.join(cmd)}")
+    try:
+        subprocess.run(cmd, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        raise click.ClickException(
+            f"update failed: {exc}\nTry manually, e.g.:  uv tool upgrade opengradient-local"
+        )
+    click.secho(
+        "✓ Updated. Restart the server to pick it up:  og-local stop && og-local", fg="green"
+    )
+
+
 @main.command()
 def logout() -> None:
     """Remove the saved session."""

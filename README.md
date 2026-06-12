@@ -79,6 +79,7 @@ the local OpenAI-compatible server.
 | `og-local stop` | Stop the background server. |
 | `og-local status` | Login + network config + whether the server is running. |
 | `og-local endpoint` | Print the agent env vars (`sudo` to also map `opengradient.inference`). |
+| `og-local update` | Update og-local to the latest version. |
 | `og-local login` | Authorize / re-authorize this device. |
 | `og-local setup` | Re-run the setup wizard. |
 | `og-local serve -f` | Run blocking in the foreground (for systemd/Docker). |

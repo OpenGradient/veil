@@ -93,6 +93,24 @@ def test_endpoint_guides_to_sudo_when_no_permission():
     assert result.exit_code == 0
 
 
+def test_update_runs_upgrade_command():
+    with mock.patch("subprocess.run") as run:
+        result = CliRunner().invoke(cli.main, ["update"])
+    assert run.called
+    cmd = run.call_args.args[0]
+    assert cmd[-1] == "opengradient-local"  # upgrades the right package
+    assert result.exit_code == 0
+
+
+def test_update_surfaces_failure():
+    import subprocess
+
+    with mock.patch("subprocess.run", side_effect=subprocess.CalledProcessError(1, "x")):
+        result = CliRunner().invoke(cli.main, ["update"])
+    assert result.exit_code != 0
+    assert "update failed" in result.output
+
+
 def test_serve_non_interactive_does_not_prompt_or_map():
     """In a non-tty (no --yes, no saved pref), the host step is skipped, not blocking."""
     with (
