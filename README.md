@@ -2,7 +2,7 @@
 
 **Drop-in confidential, self-verifying inference for AI agents.**
 
-Point any OpenAI SDK at `og-veil` with one env var. Your prompts are encrypted
+Point any OpenAI SDK at `og-veil` with one env var. Your prompts are encrypted via Oblivious HTTP
 end-to-end to an attested TEE enclave, and every response is cryptographically
 verified before it reaches your code. You trust math - not us, the host, or the
 network. Your agent's code doesn't change.
