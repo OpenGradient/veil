@@ -69,7 +69,7 @@ def test_update_runs_upgrade_command():
     with mock.patch("subprocess.run") as run:
         result = CliRunner().invoke(cli.main, ["update"])
     assert run.called
-    assert run.call_args.args[0][-1] == "opengradient-local"
+    assert run.call_args.args[0][-1] == "opengradient-veil"
     assert result.exit_code == 0
 
 

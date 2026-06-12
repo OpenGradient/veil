@@ -136,7 +136,7 @@ def _verification_headers(resp, verification: dict) -> None:
 
 def _error(status: int, message: str):
     # OpenAI-style error envelope so client SDKs surface a useful message.
-    resp = jsonify({"error": {"message": message, "type": "opengradient_local_error"}})
+    resp = jsonify({"error": {"message": message, "type": "veil_error"}})
     resp.status_code = status
     return resp
 
