@@ -69,10 +69,14 @@ On the **first run** that single command walks you through a short setup wizard:
    `http://opengradient.inference` → your local server so agents can use a clean
    base URL. Your choice is remembered.
 
-Then it starts serving (and skips the wizard on subsequent runs):
+Then it starts the server **in the background** and hands your terminal back
+(subsequent runs skip the wizard):
 
 ```
-OpenGradient Local listening on http://127.0.0.1:11434
+✓ OpenGradient Local running in the background (pid 4321).
+  Base URL : http://127.0.0.1:11434/v1
+  Logs     : ~/.opengradient/local/server.log
+  Stop     : og-local stop
 ```
 
 Point your agent at it — **the only change**:
@@ -111,22 +115,25 @@ machine.
 |---------|-------------|
 | `og-local` | **The one command** — first-run setup wizard if needed, then serve. |
 | `og-local setup [-y]` | Re-run the setup wizard (login + friendly-URL choice). |
-| `og-local serve [--port] [--tee-id] [--expected-pcr] [-d/--background] ...` | Serve (runs setup on first use; `-d` detaches it). |
-| `og-local stop` | Stop a server started with `--background`. |
+| `og-local serve [--port] [--tee-id] [--expected-pcr] [-f/--foreground] ...` | Serve (runs setup on first use). Detaches by default; `-f` blocks. |
+| `og-local stop` | Stop the background server. |
 | `og-local login [--app-url URL] [--manual]` | Authorize / re-authorize this device (default `https://chat.opengradient.ai`). |
 | `og-local status` | Show login, network config, and whether a background server is running. |
 | `og-local logout` | Remove the saved session. |
 
-### Run in the background
+### Background vs foreground
+
+The server **detaches by default** — setup/login runs in the foreground, then it
+backgrounds and frees your terminal. Manage it with:
 
 ```sh
-og-local serve --background     # setup (foreground) then detaches; prints pid + log path
-og-local status                 # shows "Background: running (pid …)"
-og-local stop                   # stops it
+og-local status     # shows "Background: running (pid …)"
+og-local stop       # stops it
 ```
 
-Logs go to `~/.opengradient/local/server.log`. (Login still happens in the
-foreground so you can complete the browser flow before it detaches.)
+Logs go to `~/.opengradient/local/server.log`. To run blocking in the foreground
+instead — e.g. under **systemd**, **Docker**, or a process manager — use
+`og-local serve --foreground`.
 
 ## Staying signed in
 

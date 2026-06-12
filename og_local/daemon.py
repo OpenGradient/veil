@@ -1,9 +1,9 @@
 """Run the local server detached, with a pidfile + log file so it can be stopped.
 
-The server normally runs in the foreground. ``og-local serve --background`` does
-the interactive setup in the foreground, then re-launches ``og-local serve`` as a
-detached child whose output goes to a log file, recording the pid so a later
-``og-local stop`` can terminate it.
+By default ``og-local`` runs the interactive setup in the foreground, then
+re-launches ``og-local serve`` as a detached child whose output goes to a log
+file, recording the pid so a later ``og-local stop`` can terminate it. Pass
+``--foreground`` to block instead (e.g. under systemd or in a container).
 """
 
 from __future__ import annotations

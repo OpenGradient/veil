@@ -126,10 +126,8 @@ def setup(app_url: str, no_browser: bool, yes: bool) -> None:
     config = ServerConfig.from_env()
     click.secho("\n✓ Setup complete.", fg="green")
     click.echo(f"  Agent base URL:  export OPENAI_BASE_URL={config.advertised_base_url()}")
-    if yes or click.confirm("\nStart the local server now?", default=True):
-        from og_local.server import serve as run_server
-
-        run_server(config)
+    if yes or click.confirm("\nStart the local server now (in the background)?", default=True):
+        _start_server(config, foreground=False)
 
 
 @main.command()
@@ -147,13 +145,16 @@ def setup(app_url: str, no_browser: bool, yes: bool) -> None:
 )
 @click.option("-y", "--yes", is_flag=True, help="Accept setup defaults (non-interactive).")
 @click.option(
-    "-d", "--background", is_flag=True, help="Run the server detached; manage with `og-local stop`."
+    "-f",
+    "--foreground",
+    is_flag=True,
+    help="Run in the foreground (blocking) instead of detaching. Use for systemd/containers.",
 )
 @click.option(
     "--skip-setup",
     is_flag=True,
     hidden=True,
-    help="Internal: skip the setup wizard (used by --background).",
+    help="Internal: skip the setup wizard (used by the detached child).",
 )
 def serve(
     host: str | None,
@@ -163,12 +164,10 @@ def serve(
     app_url: str,
     no_browser: bool,
     yes: bool,
-    background: bool,
+    foreground: bool,
     skip_setup: bool,
 ) -> None:
-    """Set up on first run (login + friendly URL), then run the local server."""
-    from og_local.server import serve as run_server
-
+    """Set up on first run, then run the local server (detached by default)."""
     if not skip_setup:
         try:
             _run_setup(
@@ -193,35 +192,48 @@ def serve(
             expected_pcr if expected_pcr.startswith("0x") else "0x" + expected_pcr
         ).lower()
 
-    if background:
-        from og_local.daemon import log_path, start_background
+    # The detached child (--skip-setup) always runs the server in-process.
+    _start_server(config, foreground=foreground or skip_setup)
 
-        # Setup is done; hand the child only the server-shaping flags.
-        flags: list[str] = []
-        if host:
-            flags += ["--host", host]
-        if port:
-            flags += ["--port", str(port)]
-        if tee_id:
-            flags += ["--tee-id", tee_id]
-        if expected_pcr:
-            flags += ["--expected-pcr", expected_pcr]
-        try:
-            pid = start_background(flags)
-        except RuntimeError as exc:
-            raise click.ClickException(str(exc))
-        click.secho(f"✓ OpenGradient Local running in the background (pid {pid}).", fg="green")
-        click.echo(f"  Base URL : {config.advertised_base_url()}")
-        click.echo(f"  Logs     : {log_path()}")
-        click.echo("  Stop     : og-local stop")
+
+def _config_flags(config: ServerConfig) -> list[str]:
+    flags = ["--host", config.host, "--port", str(config.port)]
+    if config.pinned_tee_id:
+        flags += ["--tee-id", config.pinned_tee_id]
+    if config.expected_pcr_hash:
+        flags += ["--expected-pcr", config.expected_pcr_hash]
+    return flags
+
+
+def _start_server(config: ServerConfig, *, foreground: bool) -> None:
+    """Run the server: detached in the background by default, or blocking with foreground=True."""
+    if foreground:
+        from og_local.server import serve as run_server
+
+        run_server(config)
         return
 
-    run_server(config)
+    from og_local.daemon import log_path, running_pid, start_background
+
+    try:
+        pid = start_background(_config_flags(config))
+    except RuntimeError as exc:
+        # Already running — surface that clearly rather than erroring out.
+        existing = running_pid()
+        if existing:
+            click.secho(f"OpenGradient Local is already running (pid {existing}).", fg="yellow")
+            click.echo("  Stop it with: og-local stop")
+            return
+        raise click.ClickException(str(exc))
+    click.secho(f"✓ OpenGradient Local running in the background (pid {pid}).", fg="green")
+    click.echo(f"  Base URL : {config.advertised_base_url()}")
+    click.echo(f"  Logs     : {log_path()}")
+    click.echo("  Stop     : og-local stop")
 
 
 @main.command()
 def stop() -> None:
-    """Stop a background server started with `og-local serve --background`."""
+    """Stop the background server."""
     from og_local.daemon import stop_background
 
     pid = stop_background()
