@@ -84,7 +84,7 @@ model:
   default: claude-sonnet-4-6
   provider: custom
   base_url: http://127.0.0.1:11434/v1
-  api_key: ${OPENAI_API_KEY}     # set OPENAI_API_KEY=og-veil in ~/.hermes/.env
+  api_key: og-veil
 ```
 
 Now `hermes` runs against attested, end-to-end-encrypted inference with no other
