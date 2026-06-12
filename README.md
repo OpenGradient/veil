@@ -29,7 +29,14 @@ uv tool install opengradient-veil        # or: pipx install opengradient-veil
 
 # run — logs you in (browser) the first time, then serves in the background
 og-veil
+
+# check it end-to-end — sends a one-off prompt through the verified TEE path
+og-veil test "Explain TEE attestation in one line."
 ```
+
+`og-veil test` posts to the same local endpoint your agent uses and prints the
+reply plus its `tee_id`, so it's the quickest way to confirm the whole path
+(login → encrypt → enclave → verify) works before wiring up your agent.
 
 Point your agent at it:
 
@@ -53,8 +60,9 @@ That's it. Every response is verified before you see it — check the
 `X-OpenGradient-Verified: true` header (and the `opengradient_verification` block
 on the body). Streaming works too; it's verified before the first token replays.
 
-Useful commands: `og-veil stop`, `og-veil status`, `og-veil endpoint` (re-prints
-the env vars), `og-veil update`, `og-veil logout`.
+Useful commands: `og-veil test` (send a one-off prompt to check the path),
+`og-veil stop`, `og-veil status`, `og-veil endpoint` (re-prints the env vars),
+`og-veil update`, `og-veil logout`.
 
 ### Use it with Hermes Agent
 
@@ -137,6 +145,7 @@ the local OpenAI-compatible server.
 | `og-veil` | Set up on first run, then serve (detached). The one command you need. |
 | `og-veil stop` | Stop the background server. |
 | `og-veil status` | Login + network config + whether the server is running. |
+| `og-veil test ["prompt"]` | Send a one-off prompt to the running server and print the verified reply. |
 | `og-veil update` | Update og-veil to the latest version. |
 | `og-veil login` | Authorize / re-authorize this device. |
 | `og-veil setup` | Re-run the setup wizard. |
