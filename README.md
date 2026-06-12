@@ -1,4 +1,4 @@
-# OpenGradient Local
+# OpenGradient Veil
 
 **Drop-in, self-verifying confidential inference for AI agents.**
 
