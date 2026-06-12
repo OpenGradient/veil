@@ -245,13 +245,7 @@ def login_cmd(app_url: str, no_browser: bool, manual: bool) -> None:
 @main.command(name="test")
 @click.argument("prompt", nargs=-1)
 @click.option("--model", default="gpt-4.1", show_default=True, help="Model to send the prompt to.")
-@click.option(
-    "--scrub/--no-scrub",
-    "scrub",
-    default=None,
-    help="Override PII scrubbing for this request (defaults to the server's setting).",
-)
-def test_cmd(prompt: tuple[str, ...], model: str, scrub: bool | None) -> None:
+def test_cmd(prompt: tuple[str, ...], model: str) -> None:
     """Send a one-off PROMPT to the running local server and print the reply.
 
     Posts to the localhost OpenAI-compatible endpoint — the same one your agent
@@ -260,15 +254,11 @@ def test_cmd(prompt: tuple[str, ...], model: str, scrub: bool | None) -> None:
     """
     import requests
 
-    from veil.server import _PII_BODY_FIELD
-
     text = " ".join(prompt).strip() or "Say hello from a verified TEE in one short sentence."
 
     config = ServerConfig.from_env()
     base_url = config.advertised_base_url()
-    body: dict = {"model": model, "messages": [{"role": "user", "content": text}]}
-    if scrub is not None:
-        body[_PII_BODY_FIELD] = scrub
+    body = {"model": model, "messages": [{"role": "user", "content": text}]}
     try:
         resp = requests.post(f"{base_url}/chat/completions", json=body, timeout=120)
     except requests.exceptions.RequestException as exc:

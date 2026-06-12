@@ -24,15 +24,6 @@ from veil.gateway import Gateway, GatewayError
 from veil.pii import PiiSetupError
 from veil.session import AuthError, Session
 
-# Per-request PII-scrub control. Clients flip scrubbing on/off without restarting
-# the proxy: a default header set once in the client config (the easy path), or a
-# body field via the OpenAI SDK's ``extra_body`` (per call). Either overrides the
-# server's ``--pii-scrub`` default; the body field wins if both are present.
-_PII_HEADER = "X-OpenGradient-PII-Scrub"
-_PII_BODY_FIELD = "pii_scrub"
-_TRUTHY = {"1", "true", "yes", "on"}
-_FALSY = {"0", "false", "no", "off"}
-
 logger = logging.getLogger(__name__)
 
 # Model list for clients that probe /v1/models. Derived from the SDK's canonical
@@ -75,15 +66,8 @@ def create_app(gateway: Gateway) -> Flask:
         if not request.is_json:
             return _error(415, "request must be application/json")
         body = request.get_json()
-        # Resolve the scrub preference before stripping our control field so it
-        # never reaches the TEE as an unknown OpenAI parameter.
-        scrub = _scrub_preference(body, request.headers)
-        if isinstance(body, dict):
-            body.pop(_PII_BODY_FIELD, None)
         try:
-            result = gateway.chat(body, scrub=scrub)
-        except PiiSetupError as exc:
-            return _error(503, f"PII scrubbing was requested but is unavailable: {exc}")
+            result = gateway.chat(body)
         except UnsupportedRequestError as exc:
             return _error(400, str(exc))
         except AuthError as exc:
@@ -145,31 +129,6 @@ def _stream_response(frames: list[str], verification: dict) -> Response:
 def _verification_headers(resp, verification: dict) -> None:
     resp.headers["X-OpenGradient-Verified"] = "true"
     resp.headers["X-OpenGradient-TEE-Id"] = verification["tee_id"]
-
-
-def _coerce_bool(value) -> bool | None:
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        lowered = value.strip().lower()
-        if lowered in _TRUTHY:
-            return True
-        if lowered in _FALSY:
-            return False
-    return None
-
-
-def _scrub_preference(body, headers) -> bool | None:
-    """Per-request PII-scrub override, or ``None`` to fall back to the server default.
-
-    The body field takes precedence over the header; an unrecognized value is
-    ignored (treated as "no preference") rather than guessed at.
-    """
-    if isinstance(body, dict) and _PII_BODY_FIELD in body:
-        decided = _coerce_bool(body.get(_PII_BODY_FIELD))
-        if decided is not None:
-            return decided
-    return _coerce_bool(headers.get(_PII_HEADER))
 
 
 def _error(status: int, message: str):

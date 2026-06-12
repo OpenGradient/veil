@@ -173,7 +173,7 @@ Session + prefs live in `~/.opengradient/local/` (override with `OG_VEIL_HOME`).
 | `OG_VEIL_TEE_ID` | `--tee-id` | — | Pin a specific registry TEE. |
 | `OG_VEIL_EXPECTED_PCR_HASH` | `--expected-pcr` | — | Refuse any TEE whose `pcrHash` differs. |
 | `OG_VEIL_APP_URL` | `--app-url` | `https://chat.opengradient.ai` | Chat app origin for login. |
-| `OG_VEIL_PII_SCRUB` | `--pii-scrub` | off | Default for redacting high-impact PII from prompts locally before they leave the machine (clients can override per request). |
+| `OG_VEIL_PII_SCRUB` | `--pii-scrub` | off | Redact high-impact PII from prompts locally before they leave the machine. |
 
 ### Local PII redaction (opt-in)
 
@@ -197,33 +197,9 @@ pip install https://github.com/explosion/spacy-models/releases/download/en_core_
 
 Then enable it:
 
-Set the proxy-wide default with the flag or env var:
-
 ```sh
 og-veil --pii-scrub        # or: export OG_VEIL_PII_SCRUB=1
 ```
-
-…or leave the default off and **toggle it per request from the client**, so you
-can flip scrubbing on/off as you go without restarting the proxy. Either channel
-overrides the server default (the body field wins if you set both):
-
-```python
-from openai import OpenAI
-
-client = OpenAI()  # base_url → og-veil
-client.chat.completions.create(
-    model="claude-sonnet-4-6",
-    messages=[{"role": "user", "content": "…"}],
-    extra_body={"pii_scrub": True},          # per-call
-)
-
-# or set it once for every request this client makes, via a default header:
-client = OpenAI(default_headers={"X-OpenGradient-PII-Scrub": "true"})
-```
-
-The header is the easy "set it once in your config" path — e.g. in your Hermes
-config — while `extra_body` is handy for flipping it on a single call.
-`og-veil test --scrub "…"` exercises the same path from the CLI.
 
 What gets redacted (each replaced with a `[REDACTED_*]` tag):
 
@@ -234,9 +210,8 @@ What gets redacted (each replaced with a `[REDACTED_*]` tag):
 Dates are deliberately left alone — too entangled with legitimate prompt content
 to redact without mangling it.
 
-If scrubbing is requested (by default or per request) but the extra/model isn't
-installed, the request **fails closed** with an actionable error rather than
-silently sending PII — so a prompt you asked to scrub is never forwarded raw.
+If `--pii-scrub` is set but the extra/model isn't installed, the server refuses
+to start with an actionable message rather than silently sending PII.
 
 Redaction is **irreversible** — there's no de-anonymization step, so the TEE's
 signed `output_hash` covers exactly what it ran. This is risk-reduction, not a

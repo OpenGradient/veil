@@ -18,7 +18,7 @@ from opengradient import OhttpRelayClient, TEERegistry, VerifiedChatResponse
 from opengradient.client.tee_registry import TEE_TYPE_LLM_PROXY, TEEEndpoint
 
 from veil.config import OHTTP_RELAY_PATH, ServerConfig
-from veil.pii import PiiSetupError, Redactor
+from veil.pii import build_redactor
 from veil.session import Session
 
 logger = logging.getLogger(__name__)
@@ -37,17 +37,9 @@ class Gateway:
         self._lock = threading.Lock()
         self._client: OhttpRelayClient | None = None
         self._tee: TEEEndpoint | None = None
-
-        # Local PII redaction, applied to a request before it is encrypted to the
-        # TEE. ``config.pii_scrub`` is the *default*; individual requests can flip
-        # it on/off (see Gateway.chat / the server's header+body parsing). The
-        # Presidio engine is built lazily and cached: if scrubbing is the server
-        # default we build it eagerly below so misconfiguration fails fast at
-        # startup, otherwise it's built on the first request that asks for it.
-        self._pii_default = config.pii_scrub
-        self._redactor: Redactor | None = None
-        self._redactor_error: PiiSetupError | None = None
-        self._redactor_lock = threading.Lock()
+        # Optional local PII redaction, applied to the request before it is
+        # encrypted to the TEE. ``None`` when disabled (the default).
+        self._redactor = build_redactor(enabled=config.pii_scrub)
 
         cfg = session.config
         if not cfg.tee_registry_rpc_url or not cfg.tee_registry_address:
@@ -62,30 +54,6 @@ class Gateway:
             if cfg.tee_registry_tee_type is not None
             else TEE_TYPE_LLM_PROXY
         )
-
-        # Fail fast at startup if scrubbing is the server default but unavailable,
-        # rather than at the first request.
-        if self._pii_default:
-            self._ensure_redactor()
-
-    # --- PII redaction -----------------------------------------------------
-    def _ensure_redactor(self) -> Redactor:
-        """Build (once) and return the Presidio redactor, or raise PiiSetupError.
-
-        The failure is cached so a missing ``[pii]`` extra doesn't pay the import
-        cost on every request — and so the proxy fails closed rather than ever
-        forwarding a prompt it was asked to scrub.
-        """
-        with self._redactor_lock:
-            if self._redactor_error is not None:
-                raise self._redactor_error
-            if self._redactor is None:
-                try:
-                    self._redactor = Redactor()
-                except PiiSetupError as exc:
-                    self._redactor_error = exc
-                    raise
-            return self._redactor
 
     # --- TEE resolution ----------------------------------------------------
     def _select_tee(self) -> TEEEndpoint:
@@ -147,14 +115,12 @@ class Gateway:
         return self._tee
 
     # --- inference ---------------------------------------------------------
-    def chat(self, body: dict, *, scrub: bool | None = None) -> VerifiedChatResponse:
-        # Resolve the per-request preference over the server default, then redact
-        # PII locally before anything is sealed to the enclave. Done once, outside
-        # the retry loop, so a gateway re-selection resends the already-scrubbed
-        # body rather than re-scrubbing. Raises PiiSetupError if scrubbing was
-        # requested but the [pii] extra isn't installed (fail closed).
-        if scrub if scrub is not None else self._pii_default:
-            body = self._ensure_redactor().scrub_request(body)
+    def chat(self, body: dict) -> VerifiedChatResponse:
+        # Redact PII locally before anything is sealed to the enclave. Done once,
+        # outside the retry loop, so a gateway re-selection resends the already-
+        # scrubbed body rather than re-scrubbing.
+        if self._redactor is not None:
+            body = self._redactor.scrub_request(body)
         try:
             return self._chat_once(body)
         except requests.exceptions.RequestException as exc:
