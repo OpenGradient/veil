@@ -1,6 +1,6 @@
-"""``veil`` command-line interface.
+"""``og-veil`` command-line interface.
 
-The common path is a single command: run ``veil`` and it logs you in on first
+The common path is a single command: run ``og-veil`` and it logs you in on first
 use, then starts the local server in the background. Individual steps (``serve``,
 ``login``, ``stop``, ``status``, ``endpoint``, ``update``, ``logout``) are
 available on their own too.
@@ -75,8 +75,8 @@ def setup(app_url: str, no_browser: bool, yes: bool) -> None:
 
 
 @main.command()
-@click.option("--host", default=None, help="Bind host (default 127.0.0.1 / VEIL_HOST).")
-@click.option("--port", type=int, default=None, help="Bind port (default 11434 / VEIL_PORT).")
+@click.option("--host", default=None, help="Bind host (default 127.0.0.1 / OG_VEIL_HOST).")
+@click.option("--port", type=int, default=None, help="Bind port (default 11434 / OG_VEIL_PORT).")
 @click.option("--tee-id", default=None, help="Pin a specific tee_id from the registry.")
 @click.option(
     "--expected-pcr", default=None, help="Refuse any TEE whose registry pcrHash differs from this."
@@ -158,13 +158,13 @@ def _start_server(config: ServerConfig, *, foreground: bool) -> None:
         existing = running_pid()
         if existing:
             click.secho(f"OpenGradient Local is already running (pid {existing}).", fg="yellow")
-            click.echo("  Stop it with: veil stop")
+            click.echo("  Stop it with: og-veil stop")
             return
         raise click.ClickException(str(exc))
     click.secho(f"✓ OpenGradient Local running in the background (pid {pid}).", fg="green")
     click.echo(f"  Base URL : {config.advertised_base_url()}")
     click.echo(f"  Logs     : {log_path()}")
-    click.echo("  Stop     : veil stop")
+    click.echo("  Stop     : og-veil stop")
 
 
 @main.command()
@@ -187,9 +187,9 @@ def endpoint() -> None:
     config = ServerConfig.from_env()
     click.echo("Point your agent at OpenGradient Local (one env var change):")
     click.secho(f"  export OPENAI_BASE_URL={config.advertised_base_url()}", bold=True)
-    click.echo("  export OPENAI_API_KEY=veil   # ignored; your Chat session authenticates")
+    click.echo("  export OPENAI_API_KEY=og-veil   # ignored; your Chat session authenticates")
     if running_pid() is None:
-        click.echo("\nThe server isn't running yet — start it with `veil`.")
+        click.echo("\nThe server isn't running yet — start it with `og-veil`.")
 
 
 @main.command(name="login")
@@ -248,7 +248,7 @@ def _update_command() -> list[str]:
 
 @main.command()
 def update() -> None:
-    """Update veil to the latest version from PyPI."""
+    """Update og-veil to the latest version from PyPI."""
     import subprocess
 
     cmd = _update_command()
@@ -260,7 +260,7 @@ def update() -> None:
             f"update failed: {exc}\nTry manually, e.g.:  uv tool upgrade opengradient-local"
         )
     click.secho(
-        "✓ Updated. Restart the server to pick it up:  veil stop && veil", fg="green"
+        "✓ Updated. Restart the server to pick it up:  og-veil stop && og-veil", fg="green"
     )
 
 

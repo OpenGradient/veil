@@ -18,17 +18,17 @@ from pathlib import Path
 OHTTP_RELAY_PATH = "/api/v1/chat/ohttp"
 
 # Default chat-app web origin used to start the browser login flow. Override with
-# VEIL_APP_URL or `veil login --app-url ...`.
-DEFAULT_APP_URL = os.getenv("VEIL_APP_URL", "https://chat.opengradient.ai")
+# OG_VEIL_APP_URL or `og-veil login --app-url ...`.
+DEFAULT_APP_URL = os.getenv("OG_VEIL_APP_URL", "https://chat.opengradient.ai")
 
 
 def config_home() -> Path:
     """Directory holding the saved login session.
 
     Defaults to ``~/.opengradient/local`` and is overridable with
-    ``VEIL_HOME`` (handy for tests and for running several identities).
+    ``OG_VEIL_HOME`` (handy for tests and for running several identities).
     """
-    override = os.getenv("VEIL_HOME")
+    override = os.getenv("OG_VEIL_HOME")
     base = Path(override) if override else Path.home() / ".opengradient" / "local"
     base.mkdir(parents=True, exist_ok=True)
     return base
@@ -60,10 +60,10 @@ class ServerConfig:
     @classmethod
     def from_env(cls) -> "ServerConfig":
         return cls(
-            host=os.getenv("VEIL_HOST", "127.0.0.1"),
-            port=int(os.getenv("VEIL_PORT", "11434")),
-            expected_pcr_hash=_norm_hex(os.getenv("VEIL_EXPECTED_PCR_HASH")),
-            pinned_tee_id=_norm_hex(os.getenv("VEIL_TEE_ID")),
+            host=os.getenv("OG_VEIL_HOST", "127.0.0.1"),
+            port=int(os.getenv("OG_VEIL_PORT", "11434")),
+            expected_pcr_hash=_norm_hex(os.getenv("OG_VEIL_EXPECTED_PCR_HASH")),
+            pinned_tee_id=_norm_hex(os.getenv("OG_VEIL_TEE_ID")),
         )
 
     def advertised_base_url(self) -> str:

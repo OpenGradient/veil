@@ -44,7 +44,7 @@ Homepage = "https://opengradient.ai"
 Repository = "https://github.com/OpenGradient/local"
 
 [project.scripts]
-veil = "veil.cli:main"
+og-veil = "veil.cli:main"
 
 [dependency-groups]
 dev = ["ruff>=0.9.0", "mypy>=1.13.0"]

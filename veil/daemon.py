@@ -1,8 +1,8 @@
 """Run the local server detached, with a pidfile + log file so it can be stopped.
 
-By default ``veil`` runs the interactive setup in the foreground, then
-re-launches ``veil serve`` as a detached child whose output goes to a log
-file, recording the pid so a later ``veil stop`` can terminate it. Pass
+By default ``og-veil`` runs the interactive setup in the foreground, then
+re-launches ``og-veil serve`` as a detached child whose output goes to a log
+file, recording the pid so a later ``og-veil stop`` can terminate it. Pass
 ``--foreground`` to block instead (e.g. under systemd or in a container).
 """
 
@@ -43,7 +43,7 @@ def running_pid() -> int | None:
 
 
 def start_background(serve_flags: list[str]) -> int:
-    """Launch ``veil serve --skip-setup <flags>`` detached; return its pid.
+    """Launch ``og-veil serve --skip-setup <flags>`` detached; return its pid.
 
     Setup (login + host) must already be done in the foreground by the caller.
     """

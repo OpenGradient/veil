@@ -124,7 +124,7 @@ def test_relay_401_suggests_relogin():
         json={"model": "gpt-4.1", "messages": [{"role": "user", "content": "x"}]},
     )
     assert resp.status_code == 401
-    assert "veil login" in resp.get_json()["error"]["message"]
+    assert "og-veil login" in resp.get_json()["error"]["message"]
 
 
 def test_non_json_request_rejected():

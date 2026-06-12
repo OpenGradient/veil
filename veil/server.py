@@ -86,7 +86,7 @@ def create_app(gateway: Gateway) -> Flask:
             message = exc.message
             # The relay rejected our Chat token (signed out / expired upstream).
             if exc.status_code in (401, 403):
-                message = f"{message} — your session may have expired; run `veil login` to sign in again"
+                message = f"{message} — your session may have expired; run `og-veil login` to sign in again"
             return _error(exc.status_code if 400 <= exc.status_code < 600 else 502, message)
         except Exception as exc:  # noqa: BLE001
             logger.exception("unexpected error handling chat completion")
@@ -159,7 +159,7 @@ def serve(config: ServerConfig) -> None:
         f"  Signed in as: {session.user_email or 'unknown'}\n\n"
         f"Point your agent at it (OpenAI SDK):\n"
         f"  export OPENAI_BASE_URL={config.advertised_base_url()}\n"
-        f"  export OPENAI_API_KEY=veil   # ignored; the Chat session authenticates\n"
+        f"  export OPENAI_API_KEY=og-veil   # ignored; the Chat session authenticates\n"
     )
     # threaded=True so streaming requests don't block health checks / other calls.
     app.run(host=config.host, port=config.port, threaded=True)

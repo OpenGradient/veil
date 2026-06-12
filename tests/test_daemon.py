@@ -12,7 +12,7 @@ from veil import cli, daemon
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    monkeypatch.setenv("VEIL_HOME", str(tmp_path))
+    monkeypatch.setenv("OG_VEIL_HOME", str(tmp_path))
     return tmp_path
 
 

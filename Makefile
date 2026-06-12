@@ -21,4 +21,4 @@ test:
 	uv run pytest -q
 
 serve:
-	uv run veil serve
+	uv run og-veil serve
