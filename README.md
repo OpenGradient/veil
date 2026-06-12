@@ -7,11 +7,11 @@ end-to-end to an attested TEE enclave, and every response is cryptographically
 verified before it reaches your code. You trust math — not us, the host, or the
 network. Your agent's code doesn't change.
 
-- **Private & unlinkable** — Oblivious HTTP splits *who you are* from *what you
+- **Private & unlinkable** - Oblivious HTTP splits *who you are* from *what you
   ask* across two parties that never share both. The relay sees your identity (IP & account) but only ciphertext - never your prompt. The enclave sees your prompt
-  but only the relay's IP — never you. So no one, including OpenGradient, can tie
+  but only the relay's IP - never you. So no one, including OpenGradient, can tie
   a user to a prompt (unless the relay and enclave collude).
-- **Verified** — each response is signed *inside* the enclave and checked on your
+- **Verified** - each response is signed *inside* the enclave and checked on your
   machine, proving it ran in known, reproducible code and wasn't tampered with.
   Nothing unverified ever reaches your agent.
 
