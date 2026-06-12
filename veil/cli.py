@@ -259,9 +259,7 @@ def update() -> None:
         raise click.ClickException(
             f"update failed: {exc}\nTry manually, e.g.:  uv tool upgrade opengradient-local"
         )
-    click.secho(
-        "✓ Updated. Restart the server to pick it up:  og-veil stop && og-veil", fg="green"
-    )
+    click.secho("✓ Updated. Restart the server to pick it up:  og-veil stop && og-veil", fg="green")
 
 
 @main.command()
