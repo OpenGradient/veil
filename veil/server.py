@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 
 from flask import Flask, Response, jsonify, request
-from opengradient import RelayError, VerificationError
+from opengradient import TEE_LLM, RelayError, VerificationError
 from opengradient.client.tee_verify import UnsupportedRequestError
 
 from veil.config import ServerConfig
@@ -25,17 +25,13 @@ from veil.session import AuthError, Session
 
 logger = logging.getLogger(__name__)
 
-# A small, stable model list for clients that probe /v1/models. The gateway is
+# Model list for clients that probe /v1/models. Derived from the SDK's canonical
+# ``TEE_LLM`` enum so it stays in sync with the network as models are added or
+# retired — no hand-maintained copy to go stale. Each enum value is
+# ``provider/model``; callers (and the gateway) use the bare model name, which is
+# what the SDK sends over the wire (``model.split("/")[1]``). The gateway remains
 # the source of truth for what's actually routable; this is a convenience.
-_KNOWN_MODELS = [
-    "gpt-5.2",
-    "gpt-4.1",
-    "claude-opus-4-8",
-    "claude-sonnet-4-6",
-    "claude-haiku-4-5",
-    "gemini-3-pro-preview",
-    "grok-4",
-]
+_KNOWN_MODELS = [m.value.split("/", 1)[1] for m in TEE_LLM]
 
 
 def create_app(gateway: Gateway) -> Flask:

@@ -269,7 +269,10 @@ def status() -> None:
         raise click.ClickException(str(exc))
     from veil.daemon import running_pid
 
+    from veil import __version__
+
     cfg = session.config
+    click.echo(f"Version      : {__version__}")
     click.echo(f"Signed in as : {session.user_email or 'unknown'}")
     click.echo(f"Environment  : {cfg.app_env}")
     click.echo(f"Relay (chat) : {cfg.chat_api_base_url}")
