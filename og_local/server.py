@@ -149,13 +149,18 @@ def serve(config: ServerConfig) -> None:
 
     app = create_app(gateway)
     tee = gateway.active_tee
+    base_url = config.advertised_base_url()
+    hint = ""
+    if "opengradient.inference" not in base_url:
+        hint = "  (tip: run `og-local setup-host` for a http://opengradient.inference URL)\n"
     print(
         f"OpenGradient Local listening on http://{config.host}:{config.port}\n"
         f"  Verified TEE: {tee.tee_id if tee else '?'} ({tee.endpoint if tee else '?'})\n"
         f"  Signed in as: {session.user_email or 'unknown'}\n\n"
         f"Point your agent at it (OpenAI SDK):\n"
-        f"  export OPENAI_BASE_URL=http://{config.host}:{config.port}/v1\n"
+        f"  export OPENAI_BASE_URL={base_url}\n"
         f"  export OPENAI_API_KEY=og-local   # ignored; the Chat session authenticates\n"
+        f"{hint}"
     )
     # threaded=True so streaming requests don't block health checks / other calls.
     app.run(host=config.host, port=config.port, threaded=True)

@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout opengradient-local
+        uses: actions/checkout@v4
+        with:
+          path: local
+
+      # Pre-release only: resolve the SDK from a sibling checkout until
+      # opengradient>=1.1.0 is on PyPI. Remove with the [tool.uv.sources] block.
+      - name: Checkout OpenGradient SDK (sibling, pre-release)
+        uses: actions/checkout@v4
+        with:
+          repository: OpenGradient/OpenGradient-SDK
+          ref: main
+          token: ${{ secrets.SDK_CHECKOUT_TOKEN || github.token }}
+          path: OpenGradient-SDK
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        working-directory: local
+        run: uv sync --all-groups
+
+      - name: Lint + type check
+        working-directory: local
+        run: make check
+
+      - name: Test
+        working-directory: local
+        run: make test
+
+  release:
+    needs: [check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep 'version = ' pyproject.toml | head -1 | cut -d'"' -f2)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI
+        run: uv publish
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: dist/*

@@ -56,25 +56,31 @@ expected reproducible-build PCR (`--expected-pcr`) and any TEE whose on-chain
 ## Quick start
 
 ```sh
-# 1. Install (uses uv)
-uv sync
+# 1. Install (pipx keeps it isolated; plain pip works too)
+pipx install opengradient-local      # or: pip install opengradient-local
 
 # 2. Authorize this device with your OpenGradient Chat account.
 #    Opens a browser; the relay settles payment against your account, so no
 #    wallet or private key ever lives in this process.
-uv run og-local login
+og-local login
 
-# 3. Run the local server
-uv run og-local serve
+# 3. (optional) Map the friendly hostname http://opengradient.inference -> localhost
+og-local setup-host                  # one-time; edits your hosts file (needs sudo)
+
+# 4. Run the local server
+og-local serve
 #   → listening on http://127.0.0.1:11434
 ```
 
 Then point your agent at it — **the only change**:
 
 ```sh
-export OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+export OPENAI_BASE_URL=http://opengradient.inference:11434/v1   # or http://127.0.0.1:11434/v1
 export OPENAI_API_KEY=og-local   # ignored; your Chat session authenticates
 ```
+
+> Want the clean `http://opengradient.inference/v1` (no port)? Run
+> `og-local serve --port 80` (binding port 80 needs elevated privileges).
 
 ```python
 from openai import OpenAI
@@ -99,10 +105,19 @@ machine.
 
 | Command | Description |
 |---------|-------------|
-| `og-local login [--app-url URL] [--manual]` | Authorize this device via the Chat app. |
+| `og-local login [--app-url URL] [--manual]` | Authorize this device via the Chat app (default `https://chat.opengradient.ai`). |
+| `og-local setup-host` | Map `opengradient.inference` → `127.0.0.1` in the system hosts file. |
 | `og-local serve [--host] [--port] [--tee-id] [--expected-pcr]` | Run the local server. |
 | `og-local status` | Show login + resolved network config. |
 | `og-local logout` | Remove the saved session. |
+
+## Install from source (development)
+
+```sh
+git clone https://github.com/OpenGradient/local && cd local
+uv sync --all-groups
+uv run og-local --help
+```
 
 ## Configuration
 
@@ -116,7 +131,8 @@ Login stores a session (and the network config it needs) in
 | `OG_LOCAL_PORT` | `--port` | `11434` | Bind port. |
 | `OG_LOCAL_TEE_ID` | `--tee-id` | — | Pin a specific registry TEE. |
 | `OG_LOCAL_EXPECTED_PCR_HASH` | `--expected-pcr` | — | Refuse any TEE whose on-chain `pcrHash` differs. |
-| `OG_LOCAL_APP_URL` | `--app-url` (login) | `https://app.opengradient.ai` | Chat app origin for login. |
+| `OG_LOCAL_HOSTNAME` | — | `opengradient.inference` | Friendly local hostname advertised to agents. |
+| `OG_LOCAL_APP_URL` | `--app-url` (login) | `https://chat.opengradient.ai` | Chat app origin for login. |
 
 ## Scope & limitations (MVP)
 

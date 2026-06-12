@@ -1,0 +1,48 @@
+name: Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout opengradient-local
+        uses: actions/checkout@v4
+        with:
+          path: local
+
+      # Until opengradient>=1.1.0 is published to PyPI, resolve the SDK from a
+      # sibling checkout (matches the [tool.uv.sources] path in pyproject.toml).
+      # Once the SDK is on PyPI, delete this step and the [tool.uv.sources] block.
+      - name: Checkout OpenGradient SDK (sibling, pre-release)
+        uses: actions/checkout@v4
+        with:
+          repository: OpenGradient/OpenGradient-SDK
+          ref: main
+          token: ${{ secrets.SDK_CHECKOUT_TOKEN || github.token }}
+          path: OpenGradient-SDK
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        working-directory: local
+        run: uv sync --all-groups
+
+      - name: Lint + type check
+        working-directory: local
+        run: make check
+
+      - name: Test
+        working-directory: local
+        run: make test

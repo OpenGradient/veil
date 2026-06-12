@@ -87,6 +87,20 @@ def status() -> None:
     )
 
 
+@main.command(name="setup-host")
+def setup_host() -> None:
+    """Map http://opengradient.inference to your local server (edits the hosts file)."""
+    from og_local.config import FRIENDLY_HOST
+    from og_local.hosts import add_entry
+
+    added, message = add_entry(FRIENDLY_HOST)
+    click.secho(("✓ " if added else "") + message, fg="green" if added else "yellow")
+    if added:
+        click.echo(
+            "Agents can now use:  export OPENAI_BASE_URL=http://opengradient.inference:11434/v1"
+        )
+
+
 @main.command()
 def logout() -> None:
     """Remove the saved session."""

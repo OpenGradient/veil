@@ -6,16 +6,42 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [{ name = "OpenGradient" }]
+keywords = [
+    "opengradient",
+    "tee",
+    "nitro-enclave",
+    "confidential-computing",
+    "verifiable-inference",
+    "llm",
+    "openai",
+    "ai-agents",
+    "attestation",
+    "oblivious-http",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     # The network protocol — TEE registry discovery, Oblivious HTTP encryption,
     # and response verification — all live in the OpenGradient SDK so this
-    # process and the chat-app/relay share one non-drifting implementation.
-    "opengradient>=1.0.8",
+    # process and the chat-app/relay share one non-drifting implementation. The
+    # verified-inference utilities require >=1.1.0.
+    "opengradient>=1.1.0",
     # Local OpenAI-compatible HTTP server (sync, simple SSE streaming).
     "flask>=3.0.0",
     "click>=8.1.0",
     "requests>=2.32.0",
 ]
+
+[project.urls]
+Homepage = "https://opengradient.ai"
+Repository = "https://github.com/OpenGradient/local"
 
 [project.scripts]
 og-local = "og_local.cli:main"

@@ -19,7 +19,12 @@ OHTTP_RELAY_PATH = "/api/v1/chat/ohttp"
 
 # Default chat-app web origin used to start the browser login flow. Override with
 # OG_LOCAL_APP_URL or `og-local login --app-url ...`.
-DEFAULT_APP_URL = os.getenv("OG_LOCAL_APP_URL", "https://app.opengradient.ai")
+DEFAULT_APP_URL = os.getenv("OG_LOCAL_APP_URL", "https://chat.opengradient.ai")
+
+# Friendly local hostname agents can point at instead of a bare loopback IP.
+# `og-local setup-host` maps it to 127.0.0.1 in the system hosts file; the server
+# still binds loopback. Override with OG_LOCAL_HOSTNAME.
+FRIENDLY_HOST = os.getenv("OG_LOCAL_HOSTNAME", "opengradient.inference")
 
 
 def config_home() -> Path:
@@ -65,6 +70,20 @@ class ServerConfig:
             expected_pcr_hash=_norm_hex(os.getenv("OG_LOCAL_EXPECTED_PCR_HASH")),
             pinned_tee_id=_norm_hex(os.getenv("OG_LOCAL_TEE_ID")),
         )
+
+    def advertised_base_url(self) -> str:
+        """The ``/v1`` base URL to tell agents to use.
+
+        Prefers the friendly ``opengradient.inference`` hostname when it resolves
+        to loopback (set up via ``og-local setup-host``); otherwise falls back to
+        the bind address. The port is omitted from the URL only when it's 80.
+        """
+        from og_local.hosts import resolves_to_loopback
+
+        host = FRIENDLY_HOST if resolves_to_loopback(FRIENDLY_HOST) else self.host
+        if self.port == 80:
+            return f"http://{host}/v1"
+        return f"http://{host}:{self.port}/v1"
 
 
 def _norm_hex(value: str | None) -> str | None:
