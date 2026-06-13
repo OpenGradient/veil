@@ -177,51 +177,25 @@ Session + prefs live in `~/.opengradient/local/` (override with `OG_VEIL_HOME`).
 
 ### Local PII redaction (opt-in)
 
-Veil's privacy guarantee is *unlinkability* — OHTTP splits *who you are* from
-*what you ask*, so the model provider sees your prompt but believes it came from
-the enclave, not you. That holds only if the prompt content doesn't re-identify
-you. Local PII redaction strips the **concrete, unambiguous identifiers** — when
-enabled, they're irreversibly replaced with `[REDACTED_*]` tags *before* the
-prompt is encrypted to the TEE, so they never leave your machine. It's a
-peace-of-mind backstop for the hard data, not a replacement for your own
-discretion.
-
-Detection is delegated to **Microsoft Presidio** (community-maintained
-recognizers) rather than handrolled patterns, so it ships as an optional extra.
-It uses only pattern/checksum recognizers — no NER model to download — so install
-is a single step:
+OHTTP unlinks *who you are* from *what you ask* — but only if the prompt itself
+doesn't name you. With `--pii-scrub` on, concrete identifiers are replaced with
+`[REDACTED_*]` tags locally *before* the prompt is encrypted, so they never leave
+your machine. Install the optional extra (one step — no model download) and turn
+it on:
 
 ```sh
 pip install 'opengradient-veil[pii]'
-```
-
-Then enable it:
-
-```sh
 og-veil --pii-scrub        # or: export OG_VEIL_PII_SCRUB=1
 ```
 
-What gets redacted (each replaced with a `[REDACTED_*]` tag):
-
-- **email, phone numbers** — contact identity.
-- **US SSN, bank numbers** — credit cards (Luhn), IBANs (mod-97), and US
-  bank/routing numbers, via Presidio's regex/checksum recognizers.
-- **street addresses** — a deterministic street-line recognizer.
-
-**Names, free-form locations (cities/countries), and dates are deliberately left
-in.** Those rely on statistical NER that over-redacts the third-party names real
-prompts are full of ("reply to *Advait* about *Julia*") and often mislabels
-uncommon names — wrecking the prompt for little gain. Everything redacted here is
-pattern/checksum-based: deterministic, no name guessing and no model to download.
-
-If `--pii-scrub` is set but the extra isn't installed, the server refuses to
-start with an actionable message rather than silently sending PII.
-
-Redaction is **irreversible** — there's no de-anonymization step, so the TEE's
-signed `output_hash` covers exactly what it ran. It's risk-reduction, not a
-guarantee: because names and free-form text are left in, you stay responsible for
-what you choose to disclose, and residual signals (writing style, niche topics)
-can still re-identify you.
+Redacts **email, phone, US SSN, credit cards, IBANs, US bank numbers, and street
+addresses** via [Microsoft Presidio](https://github.com/microsoft/presidio)'s
+pattern/checksum recognizers. **Names, cities/countries, and dates are left in** —
+detecting them needs statistical NER that over-redacts the third-party names real
+prompts are full of and mislabels uncommon ones. So this is a backstop for the
+hard data, not a substitute for your own discretion. Redaction is irreversible
+(the TEE's signed `output_hash` covers exactly what it ran); if the extra isn't
+installed, the server refuses to start rather than send PII.
 
 ## Notes & limitations
 
