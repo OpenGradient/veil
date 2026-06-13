@@ -18,12 +18,11 @@ hard data, not a substitute for that discretion.
 Detection is delegated to **Microsoft Presidio** so the recognizers are
 community-maintained rather than handrolled — its regex/checksum recognizers for
 email, phone, SSN, cards, IBANs, and bank numbers, plus one custom recognizer for
-street-address lines (which Presidio ships nothing for). This requires the
-optional extra plus a small spaCy model (used only for tokenization now that no
-NER entities are redacted):
+street-address lines (which Presidio ships nothing for). Because none of these
+use statistical NER, they run without a spaCy model — so the whole feature is a
+single ``pip install``, no model to download:
 
     pip install 'opengradient-veil[pii]'
-    python -m spacy download en_core_web_sm
 
 What gets redacted (mapped to the tags below):
 
@@ -52,11 +51,14 @@ SSN_TAG = "[REDACTED_SSN]"
 BANK_TAG = "[REDACTED_BANK_NUMBER]"
 ADDRESS_TAG = "[REDACTED_ADDRESS]"
 
-# spaCy model required by Presidio's pipeline. We only redact pattern-based "hard"
-# identifiers (no PERSON/LOCATION NER), so the model is used purely for
-# tokenization/context — the small English model is all that's needed. Override is
-# intentionally not exposed — keep the install predictable.
-_SPACY_MODEL = "en_core_web_sm"
+# Shown when scrubbing is requested but the optional stack isn't installed.
+_INSTALL_HINT = "Install the optional PII extra:\n  pip install 'opengradient-veil[pii]'"
+
+# Minimum recognizer confidence we act on. Presidio's recognizers emit "very weak"
+# patterns (e.g. a bare 9-digit run as a maybe-SSN at 0.05) meant to be rescued by
+# context words; with no NLP context we drop those to avoid redacting ordinary
+# numbers, keeping only the strong pattern/checksum matches.
+_SCORE_THRESHOLD = 0.4
 
 # Presidio entities we redact, each mapped to a tag. All are pattern/checksum
 # recognizers (no statistical NER): deterministic, no name/location guessing.
@@ -86,66 +88,61 @@ _STREET_ADDRESS_REGEX = (
 
 
 class PiiSetupError(Exception):
-    """PII scrubbing was requested but Presidio / the spaCy model isn't installed."""
+    """PII scrubbing was requested but the optional ``[pii]`` extra isn't installed."""
 
 
 def _build_engine():  # noqa: ANN202 — Presidio types are untyped
-    """Construct the Presidio analyzer/anonymizer and the per-entity plan.
+    """Build the recognizers, the anonymizer, and the per-entity replace plan.
 
-    Raises :class:`PiiSetupError` with an actionable message if the optional
-    dependency or its spaCy model is missing.
+    All recognizers are pattern/checksum based, so they run *without* an NLP
+    engine — no spaCy model to download. Raises :class:`PiiSetupError` with an
+    actionable message if the optional dependency isn't installed.
     """
     try:
-        from presidio_analyzer import (  # type: ignore[import-not-found]
-            AnalyzerEngine,
-            Pattern,
-            PatternRecognizer,
-        )
-        from presidio_analyzer.nlp_engine import (  # type: ignore[import-not-found]
-            NlpEngineProvider,
+        from presidio_analyzer import Pattern, PatternRecognizer  # type: ignore[import-not-found]
+        from presidio_analyzer.predefined_recognizers import (  # type: ignore[import-not-found]
+            CreditCardRecognizer,
+            EmailRecognizer,
+            IbanRecognizer,
+            PhoneRecognizer,
+            UsBankRecognizer,
+            UsSsnRecognizer,
         )
         from presidio_anonymizer import AnonymizerEngine  # type: ignore[import-not-found]
         from presidio_anonymizer.entities import (  # type: ignore[import-not-found]
             OperatorConfig,
         )
     except ImportError as exc:
-        raise PiiSetupError(
-            "PII scrubbing needs the optional extra. Install it with: "
-            "pip install 'opengradient-veil[pii]' and install the spaCy model "
-            f"'{_SPACY_MODEL}' (e.g. `python -m spacy download {_SPACY_MODEL}` or the model wheel)."
-        ) from exc
+        raise PiiSetupError(f"PII scrubbing requires Presidio.\n{_INSTALL_HINT}") from exc
 
-    provider = NlpEngineProvider(
-        nlp_configuration={
-            "nlp_engine_name": "spacy",
-            "models": [{"lang_code": "en", "model_name": _SPACY_MODEL}],
-        }
-    )
-    try:
-        nlp_engine = provider.create_engine()
-    except Exception as exc:  # noqa: BLE001 — spaCy model not downloaded yet
-        raise PiiSetupError(
-            f"the spaCy model '{_SPACY_MODEL}' is not installed; run: "
-            f"python -m spacy download {_SPACY_MODEL}"
-        ) from exc
-
-    analyzer = AnalyzerEngine(nlp_engine=nlp_engine, supported_languages=["en"])
-    analyzer.registry.add_recognizer(
+    recognizers = [
+        EmailRecognizer(),
+        PhoneRecognizer(),
+        UsSsnRecognizer(),
+        CreditCardRecognizer(),
+        IbanRecognizer(),
+        UsBankRecognizer(),
         PatternRecognizer(
             supported_entity="STREET_ADDRESS",
             patterns=[Pattern(name="street_address", regex=_STREET_ADDRESS_REGEX, score=0.6)],
-        )
-    )
+        ),
+    ]
     anonymizer = AnonymizerEngine()
-
     operators = {
         entity: OperatorConfig("replace", {"new_value": tag})
         for entity, tag in _ENTITY_TAGS.items()
     }
-    entities = list(_ENTITY_TAGS)
 
     def analyze(text: str):  # noqa: ANN202
-        return analyzer.analyze(text=text, entities=entities, language="en")
+        # Run each recognizer's pattern logic directly (no NLP artifacts → no
+        # context boosting), then keep only confident hits. The threshold drops
+        # Presidio's "very weak" patterns (e.g. a bare 9-digit number scoring 0.05
+        # as a maybe-SSN) so we don't redact ordinary numbers.
+        results: list = []
+        for rec in recognizers:
+            hits = rec.analyze(text, entities=rec.get_supported_entities(), nlp_artifacts=None)
+            results.extend(r for r in (hits or []) if r.score >= _SCORE_THRESHOLD)
+        return results
 
     return analyze, anonymizer, operators
 

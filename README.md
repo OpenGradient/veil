@@ -188,16 +188,14 @@ discretion.
 
 Detection is delegated to **Microsoft Presidio** (community-maintained
 recognizers) rather than handrolled patterns, so it ships as an optional extra.
-Install it once:
+It uses only pattern/checksum recognizers — no NER model to download — so install
+is a single step:
 
 ```sh
 pip install 'opengradient-veil[pii]'
-# fetch the spaCy model from the release wheel (avoids issues with `spacy download`
-# in some environments):
-pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 ```
 
-(`make install-pii` does both.) Then enable it:
+Then enable it:
 
 ```sh
 og-veil --pii-scrub        # or: export OG_VEIL_PII_SCRUB=1
@@ -214,11 +212,10 @@ What gets redacted (each replaced with a `[REDACTED_*]` tag):
 in.** Those rely on statistical NER that over-redacts the third-party names real
 prompts are full of ("reply to *Advait* about *Julia*") and often mislabels
 uncommon names — wrecking the prompt for little gain. Everything redacted here is
-pattern/checksum-based: deterministic, no name guessing. (The small spaCy model
-is just Presidio's tokenizer; no NER entities are redacted.)
+pattern/checksum-based: deterministic, no name guessing and no model to download.
 
-If `--pii-scrub` is set but the extra/model isn't installed, the server refuses
-to start with an actionable message rather than silently sending PII.
+If `--pii-scrub` is set but the extra isn't installed, the server refuses to
+start with an actionable message rather than silently sending PII.
 
 Redaction is **irreversible** — there's no de-anonymization step, so the TEE's
 signed `output_hash` covers exactly what it ran. It's risk-reduction, not a

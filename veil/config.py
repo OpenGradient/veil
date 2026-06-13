@@ -57,9 +57,10 @@ class ServerConfig:
     # the registry. Useful for reproducible demos and debugging.
     pinned_tee_id: str | None = None
 
-    # Opt-in local PII redaction: scrub high-impact PII (email, SSN, bank numbers,
-    # and — with the [pii] extra — addresses) out of the agent's prompt *before*
-    # it leaves this process. Off by default; see veil.pii.
+    # Opt-in local PII redaction: scrub concrete identifiers (email, phone, SSN,
+    # bank numbers, street addresses) out of the agent's prompt *before* it leaves
+    # this process. Requires the optional ``[pii]`` extra; off by default. See
+    # :mod:`veil.pii`.
     pii_scrub: bool = False
 
     @classmethod
