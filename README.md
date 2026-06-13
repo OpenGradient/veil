@@ -134,7 +134,7 @@ Nitro attestation matches a known-good build. Pin it tighter with
 `--expected-pcr <hash>` to refuse any gateway whose `pcrHash` differs.
 
 The protocol (registry discovery, OHTTP, verification) lives in the
-**OpenGradient SDK** (`OhttpRelayClient`, `TEERegistry`, `verify_response`), so
+**[OpenGradient SDK](https://github.com/OpenGradient/sdk)** (`OhttpRelayClient`, `TEERegistry`, `verify_response`), so
 this process and the web client share one implementation. This repo adds login +
 the local OpenAI-compatible server.
 
