@@ -1,7 +1,7 @@
 """PII redaction tests.
 
-Detection is delegated to Presidio + spaCy (the optional [pii] extra), so these
-tests skip when the dependency or spaCy model isn't installed. ``build_redactor(enabled=False)``
+Detection is delegated to Presidio (the optional [pii] extra; it pulls in spaCy as a dependency),
+so these tests skip when the extra isn't installed. ``build_redactor(enabled=False)``
 is checked unconditionally.
 """
 
