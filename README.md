@@ -184,7 +184,7 @@ your machine. Install the optional extra (one step — no model download) and tu
 it on:
 
 ```sh
-pip install 'opengradient-veil[pii]'
+uv tool install 'opengradient-veil[pii]'   # or: pipx install 'opengradient-veil[pii]'
 og-veil --pii-scrub        # or: export OG_VEIL_PII_SCRUB=1
 ```
 
