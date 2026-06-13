@@ -64,3 +64,20 @@ def test_stop_command(home):
         result = CliRunner().invoke(cli.main, ["stop"])
     assert "4321" in result.output
     assert result.exit_code == 0
+
+
+def test_wait_until_stopped_returns_true_once_process_gone():
+    # Alive on the first poll, gone on the second.
+    with (
+        mock.patch("os.kill", side_effect=[None, OSError]),
+        mock.patch("time.sleep"),
+    ):
+        assert daemon.wait_until_stopped(4321, timeout=1.0, interval=0.0) is True
+
+
+def test_wait_until_stopped_times_out_if_process_lingers():
+    with (
+        mock.patch("os.kill"),  # always alive
+        mock.patch("time.sleep"),
+    ):
+        assert daemon.wait_until_stopped(4321, timeout=0.0) is False

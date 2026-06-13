@@ -2,8 +2,8 @@
 
 The common path is a single command: run ``og-veil`` and it logs you in on first
 use, then starts the local server in the background. Individual steps (``serve``,
-``login``, ``stop``, ``status``, ``env``, ``models``, ``test``, ``update``,
-``logout``) are available on their own too.
+``login``, ``stop``, ``restart``, ``status``, ``env``, ``models``, ``test``,
+``update``, ``logout``) are available on their own too.
 """
 
 from __future__ import annotations
@@ -191,6 +191,62 @@ def stop() -> None:
         click.secho(f"✓ Stopped background server (pid {pid}).", fg="green")
 
 
+@main.command()
+@click.option("--host", default=None, help="Bind host (default 127.0.0.1 / OG_VEIL_HOST).")
+@click.option("--port", type=int, default=None, help="Bind port (default 11434 / OG_VEIL_PORT).")
+@click.option("--tee-id", default=None, help="Pin a specific tee_id from the registry.")
+@click.option(
+    "--expected-pcr", default=None, help="Refuse any TEE whose registry pcrHash differs from this."
+)
+@click.option(
+    "--pii-scrub",
+    is_flag=True,
+    default=False,
+    help="Redact high-impact PII (email, SSN, bank numbers; addresses with the [pii] extra) "
+    "from prompts locally before they leave this machine.",
+)
+def restart(
+    host: str | None,
+    port: int | None,
+    tee_id: str | None,
+    expected_pcr: str | None,
+    pii_scrub: bool,
+) -> None:
+    """Stop the background server (if running) and start it again.
+
+    Handy after ``og-veil update`` to load the new version. Login is reused, so
+    this never prompts. Flags work the same as ``og-veil serve``; without them
+    the server restarts with its environment-based config.
+    """
+    from veil.daemon import stop_background, wait_until_stopped
+
+    pid = stop_background()
+    if pid is None:
+        click.echo("No background server was running — starting a fresh one.")
+    else:
+        click.secho(f"✓ Stopped background server (pid {pid}).", fg="green")
+        if not wait_until_stopped(pid):
+            raise click.ClickException(
+                f"the previous server (pid {pid}) did not exit — try `og-veil stop` again"
+            )
+
+    config = ServerConfig.from_env()
+    if host:
+        config.host = host
+    if port:
+        config.port = port
+    if tee_id:
+        config.pinned_tee_id = tee_id if tee_id.startswith("0x") else "0x" + tee_id
+    if expected_pcr:
+        config.expected_pcr_hash = (
+            expected_pcr if expected_pcr.startswith("0x") else "0x" + expected_pcr
+        ).lower()
+    if pii_scrub:
+        config.pii_scrub = True
+
+    _start_server(config, foreground=False)
+
+
 @main.command(name="env")
 def env_cmd() -> None:
     """Print the env vars to point your agent at OpenGradient Veil."""
@@ -338,7 +394,7 @@ def update() -> None:
         raise click.ClickException(
             f"update failed: {exc}\nTry manually, e.g.:  uv tool upgrade opengradient-veil"
         )
-    click.secho("✓ Updated. Restart the server to pick it up:  og-veil stop && og-veil", fg="green")
+    click.secho("✓ Updated. Restart the server to pick it up:  og-veil restart", fg="green")
 
 
 @main.command()

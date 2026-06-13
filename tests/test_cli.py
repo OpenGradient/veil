@@ -129,3 +129,42 @@ def test_update_surfaces_failure():
         result = CliRunner().invoke(cli.main, ["update"])
     assert result.exit_code != 0
     assert "update failed" in result.output
+
+
+def test_restart_stops_waits_then_starts():
+    with (
+        mock.patch("veil.daemon.stop_background", return_value=4321) as stop,
+        mock.patch("veil.daemon.wait_until_stopped", return_value=True) as wait,
+        mock.patch.object(cli, "_start_server") as start,
+    ):
+        result = CliRunner().invoke(cli.main, ["restart"])
+    assert stop.called
+    assert wait.call_args.args[0] == 4321, "should wait on the stopped pid"
+    assert start.called and start.call_args.kwargs["foreground"] is False
+    assert "Stopped background server (pid 4321)" in result.output
+    assert result.exit_code == 0
+
+
+def test_restart_starts_fresh_when_nothing_running():
+    with (
+        mock.patch("veil.daemon.stop_background", return_value=None),
+        mock.patch("veil.daemon.wait_until_stopped") as wait,
+        mock.patch.object(cli, "_start_server") as start,
+    ):
+        result = CliRunner().invoke(cli.main, ["restart"])
+    assert not wait.called, "no running server → nothing to wait for"
+    assert start.called
+    assert "No background server was running" in result.output
+    assert result.exit_code == 0
+
+
+def test_restart_errors_if_old_process_lingers():
+    with (
+        mock.patch("veil.daemon.stop_background", return_value=99),
+        mock.patch("veil.daemon.wait_until_stopped", return_value=False),
+        mock.patch.object(cli, "_start_server") as start,
+    ):
+        result = CliRunner().invoke(cli.main, ["restart"])
+    assert not start.called, "must not start a new server while the old one lingers"
+    assert result.exit_code != 0
+    assert "did not exit" in result.output
