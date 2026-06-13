@@ -4,7 +4,7 @@
     echo "email me at a@b.com" | uv run python scripts/pii_repl.py   # or pipe input
 
 Local-only — no login, no TEE, no network. Just the same Redactor the proxy uses.
-Needs the extra:  make install-pii   (or: uv sync --extra pii + the model wheel)
+Needs the extra:  make install-pii   (or: uv sync --extra pii)
 """
 
 from __future__ import annotations
