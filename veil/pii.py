@@ -20,9 +20,9 @@ community-maintained rather than handrolled — its regex/checksum recognizers f
 email, phone, SSN, cards, IBANs, and bank numbers, plus one custom recognizer for
 street-address lines (which Presidio ships nothing for). Because none of these
 use statistical NER, they run without a spaCy model — so the whole feature is a
-single ``pip install``, no model to download:
+single install, no model to download:
 
-    pip install 'opengradient-veil[pii]'
+    uv tool install 'opengradient-veil[pii]'
 
 What gets redacted (mapped to the tags below):
 
@@ -52,7 +52,7 @@ BANK_TAG = "[REDACTED_BANK_NUMBER]"
 ADDRESS_TAG = "[REDACTED_ADDRESS]"
 
 # Shown when scrubbing is requested but the optional stack isn't installed.
-_INSTALL_HINT = "Install the optional PII extra:\n  pip install 'opengradient-veil[pii]'"
+_INSTALL_HINT = "Install the optional PII extra:\n  uv tool install 'opengradient-veil[pii]'"
 
 # Minimum recognizer confidence we act on. Presidio's recognizers emit "very weak"
 # patterns (e.g. a bare 9-digit run as a maybe-SSN at 0.05) meant to be rescued by
