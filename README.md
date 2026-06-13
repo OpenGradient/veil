@@ -173,6 +173,29 @@ Session + prefs live in `~/.opengradient/local/` (override with `OG_VEIL_HOME`).
 | `OG_VEIL_TEE_ID` | `--tee-id` | — | Pin a specific registry TEE. |
 | `OG_VEIL_EXPECTED_PCR_HASH` | `--expected-pcr` | — | Refuse any TEE whose `pcrHash` differs. |
 | `OG_VEIL_APP_URL` | `--app-url` | `https://chat.opengradient.ai` | Chat app origin for login. |
+| `OG_VEIL_PII_SCRUB` | `--pii-scrub` | off | Redact high-impact PII from prompts locally before they leave the machine. |
+
+### Local PII redaction (opt-in)
+
+OHTTP unlinks *who you are* from *what you ask* — but only if the prompt itself
+doesn't name you. With `--pii-scrub` on, concrete identifiers are replaced with
+`[REDACTED_*]` tags locally *before* the prompt is encrypted, so they never leave
+your machine. Install the optional extra (one step — no model download) and turn
+it on:
+
+```sh
+uv tool install 'opengradient-veil[pii]'   # or: pipx install 'opengradient-veil[pii]'
+og-veil --pii-scrub        # or: export OG_VEIL_PII_SCRUB=1
+```
+
+Redacts **email, phone, US SSN, credit cards, IBANs, US bank numbers, and street
+addresses** via [Microsoft Presidio](https://github.com/microsoft/presidio)'s
+pattern/checksum recognizers. **Names, cities/countries, and dates are left in** —
+detecting them needs statistical NER that over-redacts the third-party names real
+prompts are full of and mislabels uncommon ones. So this is a backstop for the
+hard data, not a substitute for your own discretion. Redaction is irreversible
+(the TEE's signed `output_hash` covers exactly what it ran); if the extra isn't
+installed, the server refuses to start rather than send PII.
 
 ## Notes & limitations
 

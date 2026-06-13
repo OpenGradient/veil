@@ -1,7 +1,11 @@
-.PHONY: install build publish check test serve
+.PHONY: install install-pii build publish check test serve
 
 install:
 	uv sync --all-groups
+
+# Dev install including the optional PII-redaction extra (Presidio). No model download.
+install-pii:
+	uv sync --all-groups --extra pii
 
 build:
 	uv build

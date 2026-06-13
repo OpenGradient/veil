@@ -18,6 +18,7 @@ from opengradient import OhttpRelayClient, TEERegistry, VerifiedChatResponse
 from opengradient.client.tee_registry import TEE_TYPE_LLM_PROXY, TEEEndpoint
 
 from veil.config import OHTTP_RELAY_PATH, ServerConfig
+from veil.pii import build_redactor
 from veil.session import Session
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,9 @@ class Gateway:
         self._lock = threading.Lock()
         self._client: OhttpRelayClient | None = None
         self._tee: TEEEndpoint | None = None
+        # Optional local PII redaction, applied to the request before it is
+        # encrypted to the TEE. ``None`` when disabled (the default).
+        self._redactor = build_redactor(enabled=config.pii_scrub)
 
         cfg = session.config
         if not cfg.tee_registry_rpc_url or not cfg.tee_registry_address:
@@ -112,6 +116,11 @@ class Gateway:
 
     # --- inference ---------------------------------------------------------
     def chat(self, body: dict) -> VerifiedChatResponse:
+        # Redact PII locally before anything is sealed to the enclave. Done once,
+        # outside the retry loop, so a gateway re-selection resends the already-
+        # scrubbed body rather than re-scrubbing.
+        if self._redactor is not None:
+            body = self._redactor.scrub_request(body)
         try:
             return self._chat_once(body)
         except requests.exceptions.RequestException as exc:

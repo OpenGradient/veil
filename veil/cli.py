@@ -82,6 +82,13 @@ def setup(app_url: str, no_browser: bool, yes: bool) -> None:
     "--expected-pcr", default=None, help="Refuse any TEE whose registry pcrHash differs from this."
 )
 @click.option(
+    "--pii-scrub",
+    is_flag=True,
+    default=False,
+    help="Redact high-impact PII (email, SSN, bank numbers; addresses with the [pii] extra) "
+    "from prompts locally before they leave this machine.",
+)
+@click.option(
     "--app-url", default=DEFAULT_APP_URL, show_default=True, help="Chat app web origin for login."
 )
 @click.option(
@@ -104,6 +111,7 @@ def serve(
     port: int | None,
     tee_id: str | None,
     expected_pcr: str | None,
+    pii_scrub: bool,
     app_url: str,
     no_browser: bool,
     foreground: bool,
@@ -127,6 +135,8 @@ def serve(
         config.expected_pcr_hash = (
             expected_pcr if expected_pcr.startswith("0x") else "0x" + expected_pcr
         ).lower()
+    if pii_scrub:
+        config.pii_scrub = True
 
     # The detached child (--skip-setup) always runs the server in-process.
     _start_server(config, foreground=foreground or skip_setup)
@@ -138,6 +148,8 @@ def _config_flags(config: ServerConfig) -> list[str]:
         flags += ["--tee-id", config.pinned_tee_id]
     if config.expected_pcr_hash:
         flags += ["--expected-pcr", config.expected_pcr_hash]
+    if config.pii_scrub:
+        flags += ["--pii-scrub"]
     return flags
 
 
