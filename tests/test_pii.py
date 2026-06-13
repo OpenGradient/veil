@@ -29,7 +29,7 @@ def test_tags_are_distinct():
     assert len({EMAIL_TAG, PHONE_TAG, SSN_TAG, BANK_TAG, ADDRESS_TAG}) == 5
 
 
-# --- everything below needs the [pii] extra + spaCy model ------------------
+# --- everything below needs the [pii] extra -------------------------------
 
 pytest.importorskip("presidio_analyzer", reason="requires the [pii] extra")
 
