@@ -199,7 +199,7 @@ class Redactor:
 def build_redactor(*, enabled: bool) -> Redactor | None:
     """Construct a :class:`Redactor` when PII scrubbing is enabled, else ``None``.
 
-    Raises :class:`PiiSetupError` if enabled but the ``[pii]`` extra / spaCy model
+    Raises :class:`PiiSetupError` if enabled but the optional ``[pii]`` extra
     isn't installed, so the operator gets a clear message at startup rather than a
     silent no-op.
     """
