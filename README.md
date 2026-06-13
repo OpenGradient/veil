@@ -61,8 +61,9 @@ That's it. Every response is verified before you see it — check the
 on the body). Streaming works too; it's verified before the first token replays.
 
 Useful commands: `og-veil test` (send a one-off prompt to check the path),
-`og-veil stop`, `og-veil status`, `og-veil env` (re-prints the env vars),
-`og-veil models` (list available models), `og-veil update`, `og-veil logout`.
+`og-veil stop`, `og-veil restart` (after an update), `og-veil status`,
+`og-veil env` (re-prints the env vars), `og-veil models` (list available
+models), `og-veil update`, `og-veil logout`.
 
 ### Use it with Hermes Agent
 
@@ -144,6 +145,7 @@ the local OpenAI-compatible server.
 |---------|--------------|
 | `og-veil` | Set up on first run, then serve (detached). The one command you need. |
 | `og-veil stop` | Stop the background server. |
+| `og-veil restart` | Stop and start the background server — e.g. after `og-veil update`. |
 | `og-veil status` | Login + network config + whether the server is running. |
 | `og-veil test ["prompt"]` | Send a one-off prompt to the running server and print the verified reply. |
 | `og-veil update` | Update og-veil to the latest version. |

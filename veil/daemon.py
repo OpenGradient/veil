@@ -76,3 +76,29 @@ def stop_background() -> int | None:
         pass
     pid_path().unlink(missing_ok=True)
     return pid
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)  # signal 0 just checks the process exists
+    except OSError:
+        return False
+    return True
+
+
+def wait_until_stopped(pid: int, timeout: float = 5.0, interval: float = 0.1) -> bool:
+    """Block until ``pid`` has exited, or ``timeout`` seconds elapse.
+
+    Returns True once the process is gone, False if it was still alive at the
+    deadline. Used by ``og-veil restart`` so the new server doesn't collide with
+    the old one still occupying the same port. The pidfile is already gone by
+    this point, so we poll the process directly.
+    """
+    import time
+
+    deadline = time.monotonic() + timeout
+    while _pid_alive(pid):
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(interval)
+    return True
