@@ -16,6 +16,7 @@ This module:
 from __future__ import annotations
 
 import json
+import os
 import threading
 import time
 import webbrowser
@@ -66,9 +67,14 @@ class NetworkConfig:
 class Session:
     """A persisted Chat session: tokens + network config, with auto-refresh."""
 
-    def __init__(self, data: dict):
+    def __init__(self, data: dict, mtime: Optional[float] = None):
         self._data = data
         self.config = NetworkConfig.from_dict(data.get("config", {}))
+        # Serializes refresh/reload across the threaded server's request handlers.
+        self._lock = threading.Lock()
+        # mtime of session.json as we last read/wrote it, so a long-running server
+        # can notice when another process (e.g. `og-veil login`) rewrites it.
+        self._mtime = mtime
 
     # --- persistence -------------------------------------------------------
     @classmethod
@@ -77,7 +83,7 @@ class Session:
         if not path.exists():
             raise AuthError("not logged in — run `og-veil login` first")
         try:
-            return cls(json.loads(path.read_text()))
+            return cls(json.loads(path.read_text()), mtime=_file_mtime(path))
         except (OSError, json.JSONDecodeError) as exc:
             raise AuthError(f"could not read saved session: {exc}") from exc
 
@@ -88,6 +94,28 @@ class Session:
             path.chmod(0o600)  # the file holds a live session token
         except OSError:
             pass
+        # Record our own write so reload-on-change doesn't re-read it needlessly.
+        self._mtime = _file_mtime(path)
+
+    def _reload_if_changed(self) -> None:
+        """Re-read session.json if another process rewrote it (e.g. a fresh login).
+
+        The background server loads the session once at startup and keeps it in
+        memory. Without this, a successful ``og-veil login`` — which writes a new
+        token to disk — would never reach the running server, so requests would
+        keep failing with the stale (expired/revoked) token until a restart.
+        """
+        path = session_path()
+        disk_mtime = _file_mtime(path)
+        if disk_mtime is None or disk_mtime == self._mtime:
+            return
+        try:
+            data = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            return  # mid-write or unreadable; keep what we have and try again later
+        self._data = data
+        self.config = NetworkConfig.from_dict(data.get("config", {}))
+        self._mtime = disk_mtime
 
     # --- accessors ---------------------------------------------------------
     @property
@@ -99,9 +127,13 @@ class Session:
         return {"Authorization": f"Bearer {self.access_token()}"}
 
     def access_token(self) -> str:
-        if self._is_expired():
-            self._refresh()
-        token = self._data.get("access_token")
+        with self._lock:
+            # Pick up a fresh login written by another process before deciding
+            # whether the in-memory token needs refreshing.
+            self._reload_if_changed()
+            if self._is_expired():
+                self._refresh()
+            token = self._data.get("access_token")
         if not token:
             raise AuthError("session has no access token — run `og-veil login` to sign in again")
         return token
@@ -257,3 +289,11 @@ def _require(d: dict, key: str) -> str:
     if not value:
         raise AuthError(f"CLI-auth config is missing '{key}'")
     return value
+
+
+def _file_mtime(path) -> Optional[float]:
+    """Last-modified time of ``path`` in nanoseconds, or None if it's missing."""
+    try:
+        return os.stat(path).st_mtime_ns
+    except OSError:
+        return None
