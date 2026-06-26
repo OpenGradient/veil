@@ -162,7 +162,10 @@ the local OpenAI-compatible server.
 - **Stays signed in.** The access token auto-refreshes. If you sign out in the
   Chat app, the next request tells you to run `og-veil login`.
 - **Survives a dead node.** If the chosen TEE goes offline, it reselects another
-  from the registry and retries once.
+  from the registry and retries once. A background loop also re-checks the
+  registry every few minutes and drops the cached gateway when it rotates out or
+  rotates its keys, so a registry change can't leave the proxy stuck failing
+  every request (`OG_VEIL_TEE_REFRESH_INTERVAL`).
 
 ## Configuration
 
@@ -176,6 +179,7 @@ Session + prefs live in `~/.opengradient/local/` (override with `OG_VEIL_HOME`).
 | `OG_VEIL_EXPECTED_PCR_HASH` | `--expected-pcr` | — | Refuse any TEE whose `pcrHash` differs. |
 | `OG_VEIL_APP_URL` | `--app-url` | `https://chat.opengradient.ai` | Chat app origin for login. |
 | `OG_VEIL_PII_SCRUB` | `--pii-scrub` | off | Redact high-impact PII from prompts locally before they leave the machine. |
+| `OG_VEIL_TEE_REFRESH_INTERVAL` | — | `300` | Seconds between background registry re-checks; drops a TEE that rotated out (or rotated keys) so the next request reselects. `0` disables. |
 
 ### Local PII redaction (opt-in)
 

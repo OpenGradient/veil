@@ -63,6 +63,12 @@ class ServerConfig:
     # :mod:`veil.pii`.
     pii_scrub: bool = False
 
+    # How often (seconds) the background loop re-checks the on-chain registry and
+    # drops the cached TEE when it has rotated out or rotated its keys, so the next
+    # request reselects a live gateway instead of hammering a stale one. Mirrors the
+    # SDK's RegistryTEEConnection refresh cadence. Set <= 0 to disable the loop.
+    tee_refresh_interval: float = 300.0
+
     @classmethod
     def from_env(cls) -> "ServerConfig":
         return cls(
@@ -71,6 +77,7 @@ class ServerConfig:
             expected_pcr_hash=_norm_hex(os.getenv("OG_VEIL_EXPECTED_PCR_HASH")),
             pinned_tee_id=_norm_hex(os.getenv("OG_VEIL_TEE_ID")),
             pii_scrub=_env_bool(os.getenv("OG_VEIL_PII_SCRUB")),
+            tee_refresh_interval=float(os.getenv("OG_VEIL_TEE_REFRESH_INTERVAL", "300")),
         )
 
     def advertised_base_url(self) -> str:

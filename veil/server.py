@@ -152,6 +152,10 @@ def serve(config: ServerConfig) -> None:
     except GatewayError as exc:
         raise SystemExit(f"could not resolve a TEE gateway: {exc}")
 
+    # Periodically re-resolve from the registry so a TEE that rotates out (or
+    # rotates its keys) is dropped instead of failing every request until restart.
+    gateway.start_refresh_loop()
+
     app = create_app(gateway)
     tee = gateway.active_tee
     print(
@@ -163,4 +167,7 @@ def serve(config: ServerConfig) -> None:
         f"  export OPENAI_API_KEY=og-veil   # ignored; the Chat session authenticates\n"
     )
     # threaded=True so streaming requests don't block health checks / other calls.
-    app.run(host=config.host, port=config.port, threaded=True)
+    try:
+        app.run(host=config.host, port=config.port, threaded=True)
+    finally:
+        gateway.stop_refresh_loop()
