@@ -2304,7 +2304,7 @@ wheels = [
 
 [[package]]
 name = "opengradient"
-version = "1.1.0"
+version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2322,9 +2322,9 @@ dependencies = [
     { name = "requests-toolbelt" },
     { name = "web3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/52/d5/7dd44a1732c6ffe6c798a67da0c27834bc1aef9ad0de31a25b4f5759cac0/opengradient-1.1.0.tar.gz", hash = "sha256:40834ef5e8734a435afef315437c14b48b622449b9009cdb923322a5d96d776c", size = 93405, upload-time = "2026-06-12T16:18:27.016Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/b2/e71fcd4200fe4f6cb10916a780ac2f0daecb6a6da1837f8c4cc357859dbd/opengradient-1.1.1.tar.gz", hash = "sha256:d07dd8037ac69ac93f1b39fc213024e6262a304b5d12ef333f822e024e6a4465", size = 93427, upload-time = "2026-06-23T15:48:11.095Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/cd/7bd3a1ae1ebb8813108bb742775e92141443a8bf320117f44370c7f7f860/opengradient-1.1.0-py3-none-any.whl", hash = "sha256:e7d3c7b4a973efbec687b3043fdaf95f5cb82efce665a75659eeee7de6c09c99", size = 99436, upload-time = "2026-06-12T16:18:25.645Z" },
+    { url = "https://files.pythonhosted.org/packages/10/bf/c3787d0a2de801b62d7803beae4855d1ba10ad2b61db2dd8f8693f95b79c/opengradient-1.1.1-py3-none-any.whl", hash = "sha256:83b7d4772efa2b548793b32a985d4a4e514b991365e68908aea1be14407ccd45", size = 99489, upload-time = "2026-06-23T15:48:09.941Z" },
 ]
 
 [[package]]
@@ -2358,7 +2358,7 @@ test = [
 requires-dist = [
     { name = "click", specifier = ">=8.1.0" },
     { name = "flask", specifier = ">=3.0.0" },
-    { name = "opengradient", specifier = ">=1.1.0" },
+    { name = "opengradient", specifier = ">=1.1.1" },
     { name = "presidio-analyzer", marker = "extra == 'pii'", specifier = ">=2.2.0" },
     { name = "presidio-anonymizer", marker = "extra == 'pii'", specifier = ">=2.2.0" },
     { name = "requests", specifier = ">=2.32.0" },

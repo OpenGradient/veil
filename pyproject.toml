@@ -32,7 +32,7 @@ dependencies = [
     # and response verification — all live in the OpenGradient SDK so this
     # process and the chat-app/relay share one non-drifting implementation. The
     # verified-inference utilities require >=1.1.0.
-    "opengradient>=1.1.0",
+    "opengradient>=1.1.1",
     # Local OpenAI-compatible HTTP server (sync, simple SSE streaming).
     "flask>=3.0.0",
     "click>=8.1.0",
